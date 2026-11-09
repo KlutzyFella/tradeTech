@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     // The event service is authoritative; the browser never computes prices.
     proxy: {
-      "/api": { target: "http://localhost:3000", rewrite: (p) => p.replace(/^\/api/, "") },
+      "/api": { target: "http://localhost:3000" },
       "/socket.io": { target: "http://localhost:3000", ws: true },
     },
   },
