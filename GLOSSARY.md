@@ -63,8 +63,16 @@ A per-stock state in which participant executions are refused.
 _Avoid_: Suspension, freeze
 
 **Pause**:
-A room-wide stop of the clock, ticks, scheduled news and trading.
+A stop of the current round's clock, ticks, scheduled news and trading.
 _Avoid_: Halt, freeze
+
+**Active time**:
+Round time that counts: it advances only while the round is running, never while paused or while the server is down.
+_Avoid_: Wall-clock time, elapsed time
+
+**News pause**:
+The few seconds after mechanical news during which affected stocks refuse orders so nobody trades on a stale quote.
+_Avoid_: Cooldown, halt
 
 ## News
 
@@ -105,6 +113,10 @@ _Avoid_: Net worth, portfolio value
 **Liquidation value**:
 Cash after hypothetically closing every position against the same frozen dealer curve; the competition score.
 _Avoid_: Score (in code), net worth, P&L
+
+**Liquidation**:
+The server closing a failing team's positions along the dealer curve, bypassing opening limits but not halts.
+_Avoid_: Margin call, auto-sell
 
 **Maintenance failure**:
 The state in which a team's collateral or equity falls below the maintenance threshold and its portfolio is liquidated.

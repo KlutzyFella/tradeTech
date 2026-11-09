@@ -26,7 +26,7 @@ The API runs on http://localhost:3000 (health check at `/health`). The web app r
 SEED_HOST_EMAIL=host@tradetech.local SEED_HOST_PASSWORD='choose-a-password' pnpm --filter @tradetech/server seed
 ```
 
-This creates room `DEMO`, with 10 fictional stocks across 5 sectors and 6 teams. It opens the room for practice and prints each team's password once. Sign in at http://localhost:5173 with the room code, a team login and its password.
+This creates room `DEMO`, with 10 fictional stocks across 5 sectors and 6 teams. It opens the room for practice and prints each team's password once. Sign in as the host at http://localhost:5173 ("Host sign-in"), open the event and start a round on the Control tab; teams can trade only while a round is running. Teams sign in with the room code, their login and password.
 
 ### Tests
 
@@ -41,6 +41,6 @@ pnpm --filter @tradetech/web exec playwright test   # phone-viewport E2E (needs 
 |---|---|
 | A. Rules & numerical prototype | Curve, news shocks, pressure decay, order evaluation and risk limits, position accounting, liquidation value and rounding. All test-first against §4.4 and §6. |
 | B. Event core | Host and team login, room/stock/team setup API, buy/sell/short/cover with idempotent requests under a per-room lock, cash ledger, practice reset, and participant web app (market, order slip, portfolio, activity). |
-| C. Live event | Sockets signal changes after commit. Not built yet: server clock and rounds, news desk, halts, margin liquidation, offset-based resume and the host console UI. |
+| C. Live event | Host console (setup, phases, rounds, news desk, halts, standings). Server clock on active time, with pressure fading, scheduled news and restart recovery. Mechanical news with fair-publication pause and band halts. Margin liquidation. Team timer and news feed. Not built yet: offset-based socket resume. |
 | D. Competition close | Not started |
 | E. Rehearsal & calibration | Not started |
