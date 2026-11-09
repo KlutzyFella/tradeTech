@@ -17,9 +17,20 @@ pnpm db:up                                   # Postgres 17 in Docker
 cp .env.example apps/server/.env
 pnpm --filter @tradetech/server db:migrate   # apply migrations + generate client
 pnpm dev                                     # server :3000, web :5173
-pnpm test                                    # all packages (vitest)
+pnpm test                                    # all packages (vitest); server tests use DB tradetech_test
 pnpm typecheck
+pnpm --filter @tradetech/server db:generate  # Prisma 7: migrate dev does NOT regenerate the client
+pnpm --filter @tradetech/server seed         # demo room; needs SEED_HOST_EMAIL / SEED_HOST_PASSWORD
+pnpm --filter @tradetech/web exec playwright test
 ```
+
+## API conventions
+
+- All routes are under `/api`, and every response is `{ success, data }` or `{ success: false, error: { code, message } }`. Throw `AppError` for expected failures.
+- Ids are decimal strings on the wire. Ledger money is integer paise (`*Paise`), and prices are rupee numbers.
+- Team routes take team and room from `request.auth` (the session) and never from the body. Host room routes go through `ownedRoom` and return 404 for rooms the host doesn't own.
+- Room mutations use `withRoomLock` and record changes with `appendRoomEvent`. Sockets only signal changes after commit, and clients refetch over HTTP.
+- Rule rejections are persisted as `rejected` orders with a reason. Infrastructure refusals (`market_closed`, `rate_limited`) are not persisted.
 
 ## Invariants (do not break)
 
