@@ -8,6 +8,10 @@ const configSchema = z
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
+  /** Login attempts per minute per (IP, account). Teams often share one NAT IP. */
+  LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  /** Set to true only behind a trusted reverse proxy, so request.ip is the real client. */
+  TRUST_PROXY: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   })
   .refine((c) => c.NODE_ENV !== 'production' || c.DATABASE_URL !== undefined, {
     message: 'DATABASE_URL is required in production',

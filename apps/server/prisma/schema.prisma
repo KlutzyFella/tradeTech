@@ -65,8 +65,42 @@ enum TeamStatus {
 
 /// One competition. All writes for a room are serialized behind
 /// pg_advisory_xact_lock(room id) — the single room writer (ADR 0002).
+/// An organiser account. Hosts own rooms; host-only data is served only to the owner.
+model Host {
+  id           BigInt   @id @default(autoincrement())
+  /// Stored lowercase.
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  rooms    Room[]
+  sessions Session[]
+
+  @@map("hosts")
+}
+
+/// Opaque cookie sessions. Only the SHA-256 of the token is stored.
+/// Exactly one of hostId / teamId is set; team sessions also carry roomId.
+model Session {
+  tokenHash String   @id
+  hostId    BigInt?
+  teamId    BigInt?
+  roomId    BigInt?
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  host Host? @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([hostId])
+  @@index([teamId])
+  @@map("sessions")
+}
+
 model Room {
   id                BigInt     @id @default(autoincrement())
+  hostId            BigInt
+  /// Stored uppercase.
   code              String     @unique
   name              String
   status            RoomStatus @default(draft)
@@ -79,8 +113,11 @@ model Room {
   marketVersion     BigInt     @default(0)
   /// Next offset assigned to a RoomEvent; clients resume from offsets.
   nextEventOffset   BigInt     @default(0)
+  /// Next server acceptance sequence for orders.
+  nextOrderSeq      BigInt     @default(1)
   createdAt         DateTime   @default(now()) @db.Timestamptz(3)
 
+  host   Host          @relation(fields: [hostId], references: [id], onDelete: Restrict)
   teams  Team[]
   stocks Stock[]
   rounds Round[]
@@ -110,6 +147,7 @@ model Team {
   orders    Order[]
   ledger    LedgerEntry[]
   scores    FinalScore[]
+  sessions  Session[]
 
   /// loginName is stored lowercase (normalized by the service) so uniqueness is case-insensitive.
   @@unique([roomId, loginName])
@@ -192,26 +230,27 @@ model NewsItem {
 }
 
 model Order {
-  id           BigInt      @id @default(autoincrement())
-  roomId       BigInt
-  teamId       BigInt
-  stockId      BigInt
+  id            BigInt      @id @default(autoincrement())
+  roomId        BigInt
+  teamId        BigInt
+  stockId       BigInt
   /// Client-generated idempotency key.
-  requestId    String      @db.Uuid
+  requestId     String      @db.Uuid
   /// Hash of the request body: a reused requestId with a different body is rejected, not replayed.
-  requestHash  String
+  requestHash   String
   /// Server acceptance sequence within the room.
-  acceptSeq    BigInt
-  intent       OrderIntent
+  acceptSeq     BigInt
+  intent        OrderIntent
   /// Signed shares: + buys/covers, − sells/shorts.
-  quantity     Int
-  limitPrice   Float?
-  status       OrderStatus
-  avgPrice     Float?
+  quantity      Int
+  limitPrice    Float?
+  status        OrderStatus
+  avgPrice      Float?
   /// Signed cash paid (paise), including spread and fee.
-  costPaise    BigInt?
-  rejectReason String?
-  acceptedAt   DateTime    @default(now()) @db.Timestamptz(3)
+  costPaise     BigInt?
+  rejectReason  String?
+  rejectMessage String?
+  acceptedAt    DateTime    @default(now()) @db.Timestamptz(3)
 
   room   Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
   team   Team          @relation(fields: [roomId, teamId], references: [roomId, id], onDelete: NoAction)

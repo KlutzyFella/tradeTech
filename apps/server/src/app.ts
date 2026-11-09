@@ -1,31 +1,48 @@
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
+import rateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { AppConfig } from './config.ts'
+import { registerErrorHandler } from './http/errors.ts'
+import { authPlugin } from './plugins/auth.ts'
+import { dbPlugin } from './plugins/db.ts'
 import { realtimePlugin } from './plugins/realtime.ts'
+import { authRoutes } from './routes/auth.ts'
 import { healthRoutes } from './routes/health.ts'
+import { hostRoutes } from './routes/host.ts'
+import { teamRoutes } from './routes/team.ts'
 
-/**
- * Builds the Fastify app without listening, so tests can use inject().
- * The database plugin is registered only when DATABASE_URL is configured.
- */
+/** Builds the Fastify app without listening, so tests can use inject(). */
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.LOG_LEVEL },
-    // Clients send their own request IDs for orders; this is for log correlation.
     genReqId: () => crypto.randomUUID(),
+    bodyLimit: 256 * 1024,
+    trustProxy: config.TRUST_PROXY,
   })
+  registerErrorHandler(app)
 
   await app.register(helmet)
   await app.register(cors, { origin: config.WEB_ORIGIN, credentials: true })
-
-  if (config.DATABASE_URL) {
-    const { dbPlugin } = await import('./plugins/db.ts')
-    await app.register(dbPlugin, { connectionString: config.DATABASE_URL })
-  }
-
-  await app.register(realtimePlugin, { webOrigin: config.WEB_ORIGIN })
+  // Only routes that opt in (logins) are limited; order pacing is a game rule enforced by the room writer.
+  await app.register(rateLimit, { global: false })
   await app.register(healthRoutes)
 
+  if (!config.DATABASE_URL) {
+    app.log.warn('DATABASE_URL not set — only /health is served')
+    return app
+  }
+  await app.register(dbPlugin, { connectionString: config.DATABASE_URL })
+  await app.register(authPlugin, { secureCookies: config.NODE_ENV === 'production' })
+  await app.register(realtimePlugin, { webOrigin: config.WEB_ORIGIN })
+
+  await app.register(
+    async (api) => {
+      await api.register(authRoutes, { loginRateLimitMax: config.LOGIN_RATE_LIMIT_MAX })
+      await api.register(teamRoutes)
+      await api.register(hostRoutes)
+    },
+    { prefix: '/api' },
+  )
   return app
 }
