@@ -1,4 +1,4 @@
-import type { HostNewsView, HostRoomSummary, HostRoomView, LeaderboardEntry } from "@tradetech/contracts"
+import type { HostNewsView, HostRoomSummary, HostRoomView } from "@tradetech/contracts"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { api } from "./api"
@@ -27,13 +27,6 @@ export const useHostNews = (roomId: string) =>
   useQuery({
     queryKey: hostKeys.news(roomId),
     queryFn: () => api.get<HostNewsView[]>(`/host/rooms/${roomId}/news`),
-    refetchInterval: HOST_POLL_MS,
-  })
-
-export const useLeaderboard = (roomId: string) =>
-  useQuery({
-    queryKey: hostKeys.board(roomId),
-    queryFn: () => api.get<LeaderboardEntry[]>(`/host/rooms/${roomId}/leaderboard`),
     refetchInterval: HOST_POLL_MS,
   })
 

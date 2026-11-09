@@ -30,6 +30,7 @@ pnpm --filter @tradetech/web exec playwright test
 - Ids are decimal strings on the wire. Ledger money is integer paise (`*Paise`), and prices are rupee numbers.
 - Team routes take team and room from `request.auth` (the session) and never from the body. Host room routes go through `ownedRoom` and return 404 for rooms the host doesn't own.
 - Room mutations use `withRoomLock` and record changes with `appendRoomEvent`. Sockets only signal changes after commit, and clients refetch over HTTP.
+- CSV exports (`/host/rooms/:id/export/*.csv`) are the one exception to the JSON envelope. Cells go through `csvCell`, which neutralises spreadsheet formulas.
 - Rule rejections are persisted as `rejected` orders with a reason. Infrastructure refusals (`market_closed`, `rate_limited`) are not persisted.
 
 ## Invariants (do not break)
@@ -37,7 +38,7 @@ pnpm --filter @tradetech/web exec playwright test
 - The server is authoritative for prices, cash, clock and rank. Clients never send prices, balances or team identity.
 - Money in the ledger is integer paise (`BigInt`). Use `settleToPaise` once per fill, which rounds in the dealer's favour.
 - News moves the anchor, trades move pressure and noise moves noise. Never mix them.
-- The score is liquidation value (ADR 0003), never mark-to-mid equity.
+- The score is liquidation value (ADR 0003), never mark-to-mid equity. Final scores come from `closingValuation` (exact paise) and are frozen once at close; nothing may change them afterwards.
 - All room writes go through one transaction holding `pg_advisory_xact_lock(roomId)` and append to `room_events` (ADR 0002). Broadcast only committed events.
 - Host-only fields (`NewsItem.impacts`, drafts) must never be serialized to participants.
 - Server TS must be erasable syntax (no `enum`, no parameter properties, no namespaces). Imports use `.ts` extensions.

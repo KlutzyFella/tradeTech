@@ -9,6 +9,7 @@ export const queryKeys = {
   portfolio: ["portfolio"] as const,
   orders: ["orders"] as const,
   news: ["news"] as const,
+  standings: ["standings"] as const,
 }
 
 /**
@@ -45,6 +46,7 @@ export function useLiveUpdates(enabled: boolean): { connected: boolean } {
       void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio })
     })
     socket.on("room:status", refetchAll)
+    socket.on("standings:changed", () => void queryClient.invalidateQueries({ queryKey: queryKeys.standings }))
     socket.on("portfolio:reset", refetchAll)
     return () => {
       socket.disconnect()

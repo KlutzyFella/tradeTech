@@ -64,4 +64,23 @@ test("a host sets up and runs a round; a team sees the clock and the news move p
   await host.getByRole("button", { name: "Control" }).click()
   await host.getByRole("button", { name: "Pause" }).click()
   await expect(team.getByLabel("Time left in round")).toHaveText("Paused")
+
+  // Share the leaderboard, go live, then close: the team sees a frozen final rank.
+  await host.getByRole("button", { name: "Standings" }).click()
+  await host.getByRole("button", { name: "Show leaderboard to teams" }).click()
+  await host.getByRole("button", { name: "Control" }).click()
+  await host.getByRole("button", { name: "Go live" }).click()
+  await host.getByRole("button", { name: "Close the event" }).click()
+  await host.getByRole("button", { name: "Standings" }).click()
+  await expect(host.getByRole("heading", { name: "Final results" })).toBeVisible()
+
+  const download = host.waitForEvent("download")
+  await host.getByRole("link", { name: "Standings" }).click()
+  const csv = await (await download).path()
+  const { readFileSync } = await import("node:fs")
+  expect(readFileSync(csv, "utf8")).toContain("1,Bulls,bulls,active,1000000.00,true")
+
+  await team.getByRole("button", { name: "Portfolio" }).click()
+  await expect(team.getByRole("heading", { name: "Final result" })).toBeVisible()
+  await expect(team.getByText(/rank 1 of 1/)).toBeVisible()
 })

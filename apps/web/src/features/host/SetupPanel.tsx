@@ -101,6 +101,9 @@ function Stocks({ room, locked }: { room: HostRoomView; locked: boolean }) {
 function Teams({ room, locked }: { room: HostRoomView; locked: boolean }) {
   const [text, setText] = useState("")
   const importTeams = useHostAction<{ teams: { name: string; loginName: string; password: string }[] }>(room.id, () => "/teams", "Teams added")
+  const resetPassword = useHostAction<{ teamId: string; password: string }>(room.id, (b) => `/teams/${b.teamId}/password`, "Password reset — the team has been signed out")
+  const setStatus = useHostAction<{ teamId: string; status: "active" | "disqualified"; reason: string }>(room.id, (b) => `/teams/${b.teamId}/status`)
+  const closed = room.status === "closed"
   const rows = text
     .split("\n")
     .map((line) => line.split(",").map((part) => part.trim()))
@@ -116,7 +119,37 @@ function Teams({ room, locked }: { room: HostRoomView; locked: boolean }) {
               <span className="font-medium">{t.name}</span> signs in as {t.loginName}
               {t.status !== "active" && <span className="text-destructive"> ({t.status})</span>}
             </span>
-            <span className="text-muted-foreground">{formatPaise(t.cashPaise)} cash</span>
+            <span className="flex items-center gap-2">
+              <span className="text-muted-foreground">{formatPaise(t.cashPaise)} cash</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const password = window.prompt(`New password for ${t.name} (8+ characters)`)
+                  if (password) resetPassword.mutate({ teamId: t.id, password })
+                }}
+              >
+                Reset password
+              </Button>
+              {!closed && t.status === "disqualified" && (
+                <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ teamId: t.id, status: "active", reason: "" })}>
+                  Reinstate
+                </Button>
+              )}
+              {!closed && t.status !== "disqualified" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => {
+                    const reason = window.prompt(`Why is ${t.name} being disqualified? Teams are signed out and never ranked.`)
+                    if (reason?.trim()) setStatus.mutate({ teamId: t.id, status: "disqualified", reason })
+                  }}
+                >
+                  Disqualify
+                </Button>
+              )}
+            </span>
           </li>
         ))}
       </ul>

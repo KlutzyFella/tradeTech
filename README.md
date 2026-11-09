@@ -42,5 +42,5 @@ pnpm --filter @tradetech/web exec playwright test   # phone-viewport E2E (needs 
 | A. Rules & numerical prototype | Curve, news shocks, pressure decay, order evaluation and risk limits, position accounting, liquidation value and rounding. All test-first against §4.4 and §6. |
 | B. Event core | Host and team login, room/stock/team setup API, buy/sell/short/cover with idempotent requests under a per-room lock, cash ledger, practice reset, and participant web app (market, order slip, portfolio, activity). |
 | C. Live event | Host console (setup, phases, rounds, news desk, halts, standings). Server clock on active time, with pressure fading, scheduled news and restart recovery. Mechanical news with fair-publication pause and band halts. Margin liquidation. Team timer and news feed. Not built yet: offset-based socket resume. |
-| D. Competition close | Not started |
+| D. Competition close | Closing the event freezes one market state and stores every team's final liquidation value and rank (exact paise, ties share a rank, disqualified teams unranked). Host-controlled leaderboard visibility, with each team always seeing its own score. CSV exports of standings, orders, ledger and news. Team password reset and disqualification. |
 | E. Rehearsal & calibration | Not started |

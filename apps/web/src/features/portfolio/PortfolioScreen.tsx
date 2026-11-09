@@ -1,7 +1,7 @@
 import type { PortfolioView } from "@tradetech/contracts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatPaise, formatPaiseWhole, formatPrice, formatShares, formatSignedPaise, trend } from "@/lib/format"
-import { usePortfolio } from "@/lib/queries"
+import { usePortfolio, useStandings } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 
 const toneClass = (value: number) =>
@@ -23,6 +23,8 @@ export function PortfolioScreen() {
         <p className="figures text-3xl font-semibold">{formatPaiseWhole(p.liquidationValuePaise)}</p>
         <p className={cn("figures text-sm", toneClass(result))}>{formatSignedPaise(result)} since the start</p>
       </section>
+
+      <StandingsSection />
 
       <Figures p={p} />
 
@@ -56,6 +58,44 @@ export function PortfolioScreen() {
         prices, including spread and fees. Market value and equity use the mid-price and are shown for reference.
       </p>
     </div>
+  )
+}
+
+function StandingsSection() {
+  const standings = useStandings()
+  const s = standings.data
+  if (!s) return null
+  return (
+    <section aria-labelledby="standing-heading" className="flex flex-col gap-2">
+      <h2 id="standing-heading" className="font-semibold">
+        {s.final ? "Final result" : "Standing"}
+      </h2>
+      {s.final && (
+        <p className="figures text-lg">
+          Final score {formatPaiseWhole(s.me.liquidationValuePaise)}
+          {s.me.rank !== null && `, rank ${s.me.rank} of ${s.teamCount}`}
+        </p>
+      )}
+      {!s.final && s.me.rank !== null && (
+        <p className="figures">
+          You are rank {s.me.rank} of {s.teamCount}.
+        </p>
+      )}
+      {!s.visible && <p className="text-sm text-muted-foreground">Your host is keeping the leaderboard hidden for now.</p>}
+      {s.visible && s.entries.length > 0 && (
+        <ol className="figures divide-y divide-border border-y border-border text-sm">
+          {s.entries.map((e) => (
+            <li key={`${e.rank}-${e.name}`} className="flex justify-between gap-3 py-1.5">
+              <span>
+                <span className="inline-block w-7 font-semibold">{e.rank}</span>
+                {e.name}
+              </span>
+              <span>{formatPaiseWhole(e.liquidationValuePaise)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }
 
