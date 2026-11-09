@@ -2,7 +2,7 @@ import { createNewsSchema, createRoundSchema, haltSchema, idSchema, ROUND_ACTION
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { ownedRoom } from '../host/room-service.ts'
-import { leaderboard, setHalt } from '../host/live-service.ts'
+import { setHalt } from '../host/live-service.ts'
 import { ok, parseInput } from '../http/errors.ts'
 import { createNews, listHostNews, publishNow } from '../news/news-service.ts'
 import { hostAuth, requireHost } from '../plugins/auth.ts'
@@ -15,7 +15,7 @@ const actionParams = roomParams.extend({ action: z.enum(ROUND_ACTIONS) })
 const stockParams = roomParams.extend({ stockId: idSchema })
 const newsParams = roomParams.extend({ newsId: idSchema })
 
-/** Live event controls: rounds, news desk, halts, standings. */
+/** Live event controls: rounds, news desk, halts. */
 export const hostLiveRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', requireHost)
   const loadRoom = (request: FastifyRequest, params: { roomId: string }) =>
@@ -72,10 +72,5 @@ export const hostLiveRoutes: FastifyPluginAsync = async (app) => {
     await setHalt(app.db, room, BigInt(params.stockId), input.halted, input.rebaseBand)
     changed(room.id, 'market:changed')
     return ok(null)
-  })
-
-  app.get('/host/rooms/:roomId/leaderboard', async (request) => {
-    const room = await loadRoom(request, parseInput(roomParams, request.params))
-    return ok(await leaderboard(app.db, room.id))
   })
 }

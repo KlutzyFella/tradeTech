@@ -132,3 +132,15 @@ export const createNewsSchema = z
 export type CreateNews = z.input<typeof createNewsSchema>
 
 export const haltSchema = z.object({ halted: z.boolean(), rebaseBand: z.boolean().default(false) }).strict()
+
+export const leaderboardVisibilitySchema = z.object({ public: z.boolean() }).strict()
+
+export const teamStatusSchema = z
+  .object({ status: z.enum(['active', 'disqualified']), reason: z.string().trim().max(200).default('') })
+  .strict()
+  .refine((t) => t.status !== 'disqualified' || t.reason.length > 0, { message: 'Give a reason for disqualifying.', path: ['reason'] })
+
+export const resetPasswordSchema = z.object({ password: newPasswordSchema }).strict()
+
+export const EXPORT_KINDS = ['standings', 'orders', 'ledger', 'news'] as const
+export type ExportKind = (typeof EXPORT_KINDS)[number]

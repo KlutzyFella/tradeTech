@@ -9,6 +9,7 @@ import { dbPlugin } from './plugins/db.ts'
 import { realtimePlugin } from './plugins/realtime.ts'
 import { tickerPlugin } from './rounds/ticker.ts'
 import { hostLiveRoutes } from './routes/host-live.ts'
+import { hostResultsRoutes } from './routes/host-results.ts'
 import { authRoutes } from './routes/auth.ts'
 import { healthRoutes } from './routes/health.ts'
 import { hostRoutes } from './routes/host.ts'
@@ -45,6 +46,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       await api.register(teamRoutes)
       await api.register(hostRoutes)
       await api.register(hostLiveRoutes)
+      await api.register(hostResultsRoutes)
     },
     { prefix: '/api' },
   )

@@ -69,7 +69,25 @@ export interface LeaderboardEntry {
   readonly name: string
   readonly status: 'active' | 'frozen' | 'disqualified'
   readonly liquidationValuePaise: number
-  readonly rank: number
+  /** null for disqualified teams, which are never ranked. */
+  readonly rank: number | null
+}
+
+/** Host standings: live while the event runs, frozen final results once closed. */
+export interface HostStandingsView {
+  readonly final: boolean
+  readonly frozenAt: string | null
+  readonly leaderboardPublic: boolean
+  readonly entries: readonly LeaderboardEntry[]
+}
+
+/** A team's view of the standings: its own value always; ranks only when the host shares them. */
+export interface TeamStandingsView {
+  readonly final: boolean
+  readonly visible: boolean
+  readonly teamCount: number
+  readonly me: { readonly liquidationValuePaise: number; readonly rank: number | null }
+  readonly entries: readonly Pick<LeaderboardEntry, 'name' | 'liquidationValuePaise' | 'rank'>[]
 }
 
 export interface PositionView {

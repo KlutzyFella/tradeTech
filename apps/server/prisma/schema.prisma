@@ -117,6 +117,8 @@ model Room {
   nextOrderSeq      BigInt     @default(1)
   /// When the room went live; practice-era news is hidden from teams after this.
   liveSince         DateTime?  @db.Timestamptz(3)
+  /// Whether teams may see ranks and the full leaderboard (each team always sees its own value).
+  leaderboardPublic Boolean    @default(false)
   createdAt         DateTime   @default(now()) @db.Timestamptz(3)
 
   host   Host          @relation(fields: [hostId], references: [id], onDelete: Restrict)

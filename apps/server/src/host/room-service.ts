@@ -12,6 +12,7 @@ import { Prisma, type PrismaClient, type Room } from '../generated/prisma/client
 import { AppError, notFound } from '../http/errors.ts'
 import { appendRoomEvent, withRoomLock, type Tx } from '../rooms/room-lock.ts'
 import { mergeRoomRules } from '../rooms/rules.ts'
+import { freezeFinalScores } from '../results/standings.ts'
 import { endUnfinishedRound } from '../rounds/round-service.ts'
 
 const SETUP_STATUSES = new Set<string>(['draft', 'practice'])
@@ -140,6 +141,8 @@ export async function setRoomStatus(db: PrismaClient, room: Room, status: RoomSt
     // Going live or closing ends any unfinished round (a practice round never carries into scoring).
     if (status === 'live' || status === 'closed') await endUnfinishedRound(tx, room.id, new Date())
     if (status === 'live' && (current === 'practice' || current === 'draft')) await wipePracticeState(tx, room.id)
+    // Close barrier: trading has stopped (round ended, room closed below); freeze one common state.
+    if (status === 'closed') await freezeFinalScores(tx, room.id, new Date())
     const firstTimeLive = status === 'live' && (current === 'practice' || current === 'draft')
     await tx.room.update({ where: { id: room.id }, data: { status, ...(firstTimeLive ? { liveSince: new Date() } : {}) } })
     await appendRoomEvent(tx, room.id, { type: 'room_status', payload: { from: current, to: status }, isPublic: true, marketChanged: false })

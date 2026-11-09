@@ -230,7 +230,7 @@ describe('host leaderboard', () => {
       cookies: host,
       payload: { headline: 'Up', kind: 'mechanical', impacts: { [stocks.THIN!]: 0.08 }, mode: 'publish' },
     })
-    const board = (await app.inject({ method: 'GET', url: `/api/host/rooms/${roomId}/leaderboard`, cookies: host })).json().data
+    const board = (await app.inject({ method: 'GET', url: `/api/host/rooms/${roomId}/leaderboard`, cookies: host })).json().data.entries
     expect(board.map((e: { name: string; rank: number }) => [e.name, e.rank])).toEqual([
       ['Team 2', 1],
       ['Team 1', 2],
