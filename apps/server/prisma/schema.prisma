@@ -1,0 +1,302 @@
+// TradeTech event store. Money is stored as integer paise (BigInt) and share
+// quantities as integers; curve state uses double precision because it is a
+// model input, not a ledger balance. See docs/blueprint.md §10.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoomStatus {
+  draft
+  practice
+  live
+  paused
+  closed
+}
+
+enum RoundKind {
+  practice
+  scored
+}
+
+enum RoundStatus {
+  pending
+  running
+  paused
+  ended
+}
+
+enum NewsKind {
+  mechanical
+  information
+}
+
+enum NewsStatus {
+  draft
+  scheduled
+  published
+}
+
+enum OrderIntent {
+  buy
+  sell
+  short
+  cover
+}
+
+enum OrderStatus {
+  received
+  filled
+  rejected
+}
+
+enum TeamStatus {
+  active
+  frozen
+  disqualified
+}
+
+/// One competition. All writes for a room are serialized behind
+/// pg_advisory_xact_lock(room id) — the single room writer (ADR 0002).
+model Room {
+  id                BigInt     @id @default(autoincrement())
+  code              String     @unique
+  name              String
+  status            RoomStatus @default(draft)
+  startingCashPaise BigInt
+  /// Fees, limits, collateral and scoring policy for this event, versioned.
+  rules             Json
+  rulesVersion      Int        @default(1)
+  randomSeed        String
+  /// Monotonic counter bumped with every committed market change.
+  marketVersion     BigInt     @default(0)
+  /// Next offset assigned to a RoomEvent; clients resume from offsets.
+  nextEventOffset   BigInt     @default(0)
+  createdAt         DateTime   @default(now()) @db.Timestamptz(3)
+
+  teams  Team[]
+  stocks Stock[]
+  rounds Round[]
+  news   NewsItem[]
+  orders Order[]
+  events RoomEvent[]
+  ledger LedgerEntry[]
+  scores FinalScore[]
+
+  @@map("rooms")
+}
+
+model Team {
+  id           BigInt     @id @default(autoincrement())
+  roomId       BigInt
+  name         String
+  loginName    String
+  passwordHash String
+  status       TeamStatus @default(active)
+  statusReason String?
+  /// Ledger cash in paise, including collateral restricted against shorts.
+  cashPaise    BigInt
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+
+  room      Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  positions Position[]
+  orders    Order[]
+  ledger    LedgerEntry[]
+  scores    FinalScore[]
+
+  /// loginName is stored lowercase (normalized by the service) so uniqueness is case-insensitive.
+  @@unique([roomId, loginName])
+  @@unique([roomId, id])
+  @@unique([roomId, name])
+  @@index([roomId])
+  @@map("teams")
+}
+
+model Stock {
+  id            BigInt  @id @default(autoincrement())
+  roomId        BigInt
+  ticker        String
+  name          String
+  sector        String
+  profile       String  @default("")
+  openingPrice  Float
+  /// Market state: M = anchor · exp(pressure + noise).
+  anchor        Float
+  pressure      Float   @default(0)
+  noise         Float   @default(0)
+  depth         Float
+  sensitivity   Float   @default(1)
+  halfLifeMin   Float   @default(4)
+  shortable     Boolean @default(true)
+  borrowPool    Int
+  borrowUsed    Int     @default(0)
+  bandReference Float
+  bandFraction  Float   @default(0.2)
+  halted        Boolean @default(false)
+
+  room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  positions Position[]
+  orders    Order[]
+
+  @@unique([roomId, ticker])
+  @@unique([roomId, id])
+  @@index([roomId])
+  @@map("stocks")
+}
+
+model Round {
+  id              BigInt      @id @default(autoincrement())
+  roomId          BigInt
+  sequence        Int
+  kind            RoundKind
+  status          RoundStatus @default(pending)
+  /// Active (unpaused) duration in milliseconds; the server owns the clock.
+  durationMs      Int
+  activeElapsedMs Int         @default(0)
+  /// Opening references used for circuit bands, keyed by stock id.
+  openingRefs     Json?
+  cutoffAt        DateTime?   @db.Timestamptz(3)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, sequence])
+  @@map("rounds")
+}
+
+/// Public fields are headline/body; impacts are host-only and must never be
+/// serialized to participants.
+model NewsItem {
+  id            BigInt     @id @default(autoincrement())
+  roomId        BigInt
+  kind          NewsKind
+  status        NewsStatus @default(draft)
+  headline      String
+  body          String     @default("")
+  sourceLabel   String?
+  /// Private: { [stockId]: shock } where shock > -1.
+  impacts       Json       @default("{}")
+  scheduledAtMs Int?
+  publishedAt   DateTime?  @db.Timestamptz(3)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, status])
+  @@map("news_items")
+}
+
+model Order {
+  id           BigInt      @id @default(autoincrement())
+  roomId       BigInt
+  teamId       BigInt
+  stockId      BigInt
+  /// Client-generated idempotency key.
+  requestId    String      @db.Uuid
+  /// Hash of the request body: a reused requestId with a different body is rejected, not replayed.
+  requestHash  String
+  /// Server acceptance sequence within the room.
+  acceptSeq    BigInt
+  intent       OrderIntent
+  /// Signed shares: + buys/covers, − sells/shorts.
+  quantity     Int
+  limitPrice   Float?
+  status       OrderStatus
+  avgPrice     Float?
+  /// Signed cash paid (paise), including spread and fee.
+  costPaise    BigInt?
+  rejectReason String?
+  acceptedAt   DateTime    @default(now()) @db.Timestamptz(3)
+
+  room   Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  team   Team          @relation(fields: [roomId, teamId], references: [roomId, id], onDelete: NoAction)
+  stock  Stock         @relation(fields: [roomId, stockId], references: [roomId, id], onDelete: NoAction)
+  ledger LedgerEntry[]
+
+  @@unique([teamId, requestId])
+  @@unique([roomId, id])
+  @@unique([roomId, acceptSeq])
+  @@index([stockId])
+  @@map("orders")
+}
+
+model Position {
+  roomId           BigInt
+  teamId           BigInt
+  stockId          BigInt
+  /// Signed: > 0 long, < 0 short.
+  quantity         Int    @default(0)
+  costBasisPaise   BigInt @default(0)
+  realizedPnlPaise BigInt @default(0)
+
+  team  Team  @relation(fields: [roomId, teamId], references: [roomId, id], onDelete: NoAction)
+  stock Stock @relation(fields: [roomId, stockId], references: [roomId, id], onDelete: NoAction)
+
+  @@id([teamId, stockId])
+  @@index([roomId])
+  @@index([stockId])
+  @@map("positions")
+}
+
+/// Every cash change and its cause. Corrections are explicit entries, never edits.
+model LedgerEntry {
+  id          BigInt   @id @default(autoincrement())
+  roomId      BigInt
+  teamId      BigInt
+  amountPaise BigInt
+  cause       String
+  orderId     BigInt?
+  eventOffset BigInt?
+  note        String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  room  Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  team  Team   @relation(fields: [roomId, teamId], references: [roomId, id], onDelete: NoAction)
+  order Order? @relation(fields: [roomId, orderId], references: [roomId, id], onDelete: NoAction)
+
+  /// One posting per order per cause: a retried fill cannot post cash twice.
+  @@unique([orderId, cause])
+  @@index([teamId])
+  @@index([roomId])
+  @@map("ledger_entries")
+}
+
+/// Append-only event log and transactional outbox (publishedAt null = pending).
+model RoomEvent {
+  roomId        BigInt
+  offset        BigInt
+  marketVersion BigInt
+  type          String
+  payload       Json
+  /// True when the payload may be delivered to participants. Defaults to private so host-only data never leaks by omission.
+  isPublic      Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  publishedAt   DateTime? @db.Timestamptz(3)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, offset])
+  @@index([publishedAt])
+  @@map("room_events")
+}
+
+model FinalScore {
+  roomId           BigInt
+  teamId           BigInt
+  liquidationPaise BigInt
+  rank             Int
+  /// Per-stock valuation breakdown against the frozen market state.
+  breakdown        Json
+  frozenAt         DateTime @db.Timestamptz(3)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [roomId, teamId], references: [roomId, id], onDelete: NoAction)
+
+  @@id([roomId, teamId])
+  @@map("final_scores")
+}
