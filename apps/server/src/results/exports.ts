@@ -11,15 +11,16 @@ type Cell = string | number | boolean | null | undefined
 export function csvCell(value: Cell): string {
   if (value === null || value === undefined) return ''
   let text = String(value)
-  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`
+  // Plain numbers like "-1234.50" stay numeric; anything else starting with a formula character is defused.
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text) && !/^-?\d+(\.\d+)?$/.test(text)) text = `'${text}`
   return /[",\n\r]/.test(text) || text !== String(value) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
 const toCsv = (header: readonly string[], rows: readonly Cell[][]): string =>
   [header.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n') + '\n'
 
-/** Numbers (never strings) so negative amounts stay numeric and aren't mistaken for formulas. */
-const rupees = (paise: bigint | number | null): number | null => (paise === null ? null : Math.round(Number(paise)) / 100)
+/** Fixed two decimals; csvCell keeps plain numeric strings (including negatives) numeric. */
+const rupees = (paise: bigint | number | null): string | null => (paise === null ? null : (Number(paise) / 100).toFixed(2))
 
 export async function buildExport(db: PrismaClient, roomId: bigint, kind: ExportKind): Promise<string> {
   switch (kind) {
@@ -42,7 +43,7 @@ export async function buildExport(db: PrismaClient, roomId: bigint, kind: Export
           o.intent,
           o.quantity,
           o.status,
-          o.avgPrice === null ? null : Number(o.avgPrice.toFixed(6)),
+          o.avgPrice?.toFixed(6),
           rupees(o.costPaise === null ? null : -o.costPaise),
           o.rejectReason,
           o.requestHash === 'liquidation' ? 'liquidation' : 'team',
