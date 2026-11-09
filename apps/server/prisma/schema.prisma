@@ -158,26 +158,30 @@ model Team {
 }
 
 model Stock {
-  id            BigInt  @id @default(autoincrement())
+  id            BigInt    @id @default(autoincrement())
   roomId        BigInt
   ticker        String
   name          String
   sector        String
-  profile       String  @default("")
+  profile       String    @default("")
   openingPrice  Float
   /// Market state: M = anchor · exp(pressure + noise).
   anchor        Float
-  pressure      Float   @default(0)
-  noise         Float   @default(0)
+  pressure      Float     @default(0)
+  noise         Float     @default(0)
   depth         Float
-  sensitivity   Float   @default(1)
-  halfLifeMin   Float   @default(4)
-  shortable     Boolean @default(true)
+  sensitivity   Float     @default(1)
+  halfLifeMin   Float     @default(4)
+  shortable     Boolean   @default(true)
   borrowPool    Int
-  borrowUsed    Int     @default(0)
+  borrowUsed    Int       @default(0)
   bandReference Float
-  bandFraction  Float   @default(0.2)
-  halted        Boolean @default(false)
+  bandFraction  Float     @default(0.2)
+  halted        Boolean   @default(false)
+  /// Why the stock is halted: 'host' or 'band'.
+  haltReason    String?
+  /// Fair-publication pause after mechanical news: no executions before this instant.
+  reopensAt     DateTime? @db.Timestamptz(3)
 
   room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   positions Position[]
@@ -201,10 +205,14 @@ model Round {
   /// Opening references used for circuit bands, keyed by stock id.
   openingRefs     Json?
   cutoffAt        DateTime?   @db.Timestamptz(3)
+  startedAt       DateTime?   @db.Timestamptz(3)
+  /// Wall-clock instant up to which activeElapsedMs has been accounted; null unless running.
+  lastTickAt      DateTime?   @db.Timestamptz(3)
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, sequence])
+  @@index([status])
   @@map("rounds")
 }
 
@@ -220,6 +228,8 @@ model NewsItem {
   sourceLabel   String?
   /// Private: { [stockId]: shock } where shock > -1.
   impacts       Json       @default("{}")
+  /// Scheduled news fires when this round's active elapsed time reaches scheduledAtMs.
+  roundId       BigInt?
   scheduledAtMs Int?
   publishedAt   DateTime?  @db.Timestamptz(3)
 

@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { ok, parseInput } from '../http/errors.ts'
 import { signal } from '../plugins/realtime.ts'
 import { requireTeam, teamAuth } from '../plugins/auth.ts'
+import { listPublicNews } from '../news/news-service.ts'
 import { placeOrder, previewOrder } from '../trading/order-service.ts'
 import { getMarketView, getPortfolioView, listTeamOrders } from '../trading/views.ts'
 
@@ -13,6 +14,8 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
   app.get('/market', async (request) => ok(await getMarketView(app.db, teamAuth(request).roomId)))
 
   app.get('/portfolio', async (request) => ok(await getPortfolioView(app.db, teamAuth(request))))
+
+  app.get('/news', async (request) => ok(await listPublicNews(app.db, teamAuth(request).roomId)))
 
   app.get('/orders', async (request) => ok(await listTeamOrders(app.db, teamAuth(request).teamId)))
 

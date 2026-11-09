@@ -12,6 +12,7 @@ import { Prisma, type PrismaClient, type Room } from '../generated/prisma/client
 import { AppError, notFound } from '../http/errors.ts'
 import { appendRoomEvent, withRoomLock, type Tx } from '../rooms/room-lock.ts'
 import { mergeRoomRules } from '../rooms/rules.ts'
+import { endUnfinishedRound } from '../rounds/round-service.ts'
 
 const SETUP_STATUSES = new Set<string>(['draft', 'practice'])
 const RESETTABLE_STATUSES = new Set<string>(['draft', 'practice'])
@@ -136,6 +137,8 @@ export async function setRoomStatus(db: PrismaClient, room: Room, status: RoomSt
       throw new AppError(409, 'invalid_transition', `A ${current} room cannot become ${status}.`)
     }
     // Practice is separate account state (blueprint §8): scoring always starts clean.
+    // Going live or closing ends any unfinished round (a practice round never carries into scoring).
+    if (status === 'live' || status === 'closed') await endUnfinishedRound(tx, room.id, new Date())
     if (status === 'live' && (current === 'practice' || current === 'draft')) await wipePracticeState(tx, room.id)
     await tx.room.update({ where: { id: room.id }, data: { status } })
     await appendRoomEvent(tx, room.id, { type: 'room_status', payload: { from: current, to: status }, isPublic: true, marketChanged: false })

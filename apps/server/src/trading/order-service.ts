@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
 import type { OrderPreview, OrderTicketInput, PlaceOrder, PlaceOrderResult } from '@tradetech/contracts'
-import { applyFillToPosition, evaluateOrder, pressureAfter, type OrderDecision, type OrderFill } from '@tradetech/engine'
+import { evaluateOrder, type OrderDecision } from '@tradetech/engine'
 import type { PrismaClient, Room, Stock, Team } from '../generated/prisma/client.ts'
 import { AppError, notFound } from '../http/errors.ts'
-import { appendRoomEvent, withRoomLock, type Tx } from '../rooms/room-lock.ts'
+import { withRoomLock, type Tx } from '../rooms/room-lock.ts'
 import { parseRoomRules } from '../rooms/rules.ts'
+import { applyFillEffects, nextAcceptSeq } from './fills.ts'
 import { quotesFor, stockTradingState } from './market-state.ts'
 import { toOrderView } from './views.ts'
 
@@ -31,12 +32,17 @@ interface TradingSnapshot {
 async function evaluate(tx: Tx, ref: TeamRef, ticket: OrderTicketInput): Promise<TradingSnapshot> {
   const room = await tx.room.findUniqueOrThrow({ where: { id: ref.roomId } })
   if (!TRADING_STATUSES.has(room.status)) throw new AppError(409, 'market_closed', 'Trading is not open right now.')
+  const running = await tx.round.findFirst({ where: { roomId: ref.roomId, status: 'running' }, select: { id: true } })
+  if (!running) throw new AppError(409, 'market_closed', 'Trading opens when the host starts the round.')
   const team = await tx.team.findUniqueOrThrow({ where: { id: ref.teamId } })
   if (team.status !== 'active') throw new AppError(403, 'team_inactive', `This team is ${team.status}.`)
 
   const stocks = await tx.stock.findMany({ where: { roomId: ref.roomId } })
   const stock = stocks.find((s) => s.id.toString() === ticket.stockId)
   if (!stock) throw notFound('Stock')
+  if (stock.reopensAt && stock.reopensAt.getTime() > Date.now()) {
+    throw new AppError(409, 'news_pause', `${stock.ticker} reopens in a moment after the news — try again shortly.`)
+  }
   const positions = await tx.position.findMany({ where: { teamId: ref.teamId } })
   const rules = parseRoomRules(room.rules)
 
@@ -65,39 +71,6 @@ async function enforceRateLimit(tx: Tx, ref: TeamRef, minIntervalMs: number): Pr
   }
 }
 
-async function applyFill(tx: Tx, snapshot: TradingSnapshot, ref: TeamRef, fill: OrderFill, orderId: bigint): Promise<void> {
-  const { stock } = snapshot
-  await tx.stock.update({
-    where: { id: stock.id },
-    data: {
-      pressure: pressureAfter(stock.pressure, stock, fill.signedQuantity),
-      borrowUsed: { increment: fill.borrowDelta },
-    },
-  })
-  await tx.team.update({ where: { id: ref.teamId }, data: { cashPaise: { increment: fill.cashDeltaPaise } } })
-
-  const existing = await tx.position.findUnique({ where: { teamId_stockId: { teamId: ref.teamId, stockId: stock.id } } })
-  const next = applyFillToPosition(
-    existing ?? { quantity: 0, costBasisPaise: 0n, realizedPnlPaise: 0n },
-    fill.signedQuantity,
-    fill.cashDeltaPaise,
-  )
-  await tx.position.upsert({
-    where: { teamId_stockId: { teamId: ref.teamId, stockId: stock.id } },
-    create: { roomId: ref.roomId, teamId: ref.teamId, stockId: stock.id, ...next },
-    update: next,
-  })
-  const event = await appendRoomEvent(tx, ref.roomId, {
-    type: 'quote',
-    payload: { stockId: stock.id.toString(), mid: fill.midAfter },
-    isPublic: true,
-    marketChanged: true,
-  })
-  await tx.ledgerEntry.create({
-    data: { roomId: ref.roomId, teamId: ref.teamId, amountPaise: fill.cashDeltaPaise, cause: 'fill', orderId, eventOffset: event.offset },
-  })
-}
-
 /**
  * Accepts one order atomically as the room's single writer. Idempotent on
  * (team, requestId): a retry returns the stored result; a reused id with a
@@ -122,11 +95,6 @@ export async function placeOrder(db: PrismaClient, ref: TeamRef, input: PlaceOrd
     const { decision, stock } = snapshot
     const sign = input.intent === 'buy' || input.intent === 'cover' ? 1 : -1
 
-    const seq = await tx.room.update({
-      where: { id: ref.roomId },
-      data: { nextOrderSeq: { increment: 1 } },
-      select: { nextOrderSeq: true },
-    })
     const order = await tx.order.create({
       data: {
         roomId: ref.roomId,
@@ -134,7 +102,7 @@ export async function placeOrder(db: PrismaClient, ref: TeamRef, input: PlaceOrd
         stockId: stock.id,
         requestId: input.requestId,
         requestHash: hash,
-        acceptSeq: seq.nextOrderSeq - 1n,
+        acceptSeq: await nextAcceptSeq(tx, ref.roomId),
         intent: input.intent,
         quantity: sign * input.quantity,
         limitPrice: input.limitPrice ?? null,
@@ -146,7 +114,7 @@ export async function placeOrder(db: PrismaClient, ref: TeamRef, input: PlaceOrd
       },
       include: { stock: { select: { ticker: true } } },
     })
-    if (decision.ok) await applyFill(tx, snapshot, ref, decision, order.id)
+    if (decision.ok) await applyFillEffects(tx, ref, stock, decision, order.id, 'fill')
     return { order: toOrderView(order), replayed: false }
   })
 }

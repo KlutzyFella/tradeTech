@@ -7,6 +7,8 @@ import { registerErrorHandler } from './http/errors.ts'
 import { authPlugin } from './plugins/auth.ts'
 import { dbPlugin } from './plugins/db.ts'
 import { realtimePlugin } from './plugins/realtime.ts'
+import { tickerPlugin } from './rounds/ticker.ts'
+import { hostLiveRoutes } from './routes/host-live.ts'
 import { authRoutes } from './routes/auth.ts'
 import { healthRoutes } from './routes/health.ts'
 import { hostRoutes } from './routes/host.ts'
@@ -35,12 +37,14 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   await app.register(dbPlugin, { connectionString: config.DATABASE_URL })
   await app.register(authPlugin, { secureCookies: config.NODE_ENV === 'production' })
   await app.register(realtimePlugin, { webOrigin: config.WEB_ORIGIN })
+  if (config.TICKER_ENABLED) await app.register(tickerPlugin, { intervalMs: config.TICK_INTERVAL_MS })
 
   await app.register(
     async (api) => {
       await api.register(authRoutes, { loginRateLimitMax: config.LOGIN_RATE_LIMIT_MAX })
       await api.register(teamRoutes)
       await api.register(hostRoutes)
+      await api.register(hostLiveRoutes)
     },
     { prefix: '/api' },
   )

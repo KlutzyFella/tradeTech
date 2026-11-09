@@ -22,3 +22,16 @@ export const DEFAULT_RISK_RULES: RiskRules = Object.freeze({
   maxShortFraction: 0.25,
   maxOrderMove: 0.02,
 })
+
+/** Maintenance thresholds (blueprint §6): looser than opening limits. */
+export interface MaintenanceRules {
+  /** Fail when cash < ratio × short notional. */
+  readonly maintenanceCollateralRatio: number
+  /** Fail when equity < ratio × gross exposure. */
+  readonly maintenanceEquityRatio: number
+}
+
+export const DEFAULT_MAINTENANCE_RULES: MaintenanceRules = Object.freeze({
+  maintenanceCollateralRatio: 1.3,
+  maintenanceEquityRatio: 0.75,
+})

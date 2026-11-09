@@ -11,6 +11,9 @@ const configSchema = z
   /** Login attempts per minute per (IP, account). Teams often share one NAT IP. */
   LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   /** Set to true only behind a trusted reverse proxy, so request.ip is the real client. */
+  /** Disable only in tests, which drive ticks directly. */
+  TICKER_ENABLED: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
+  TICK_INTERVAL_MS: z.coerce.number().int().min(100).max(10_000).default(1000),
   TRUST_PROXY: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   })
   .refine((c) => c.NODE_ENV !== 'production' || c.DATABASE_URL !== undefined, {

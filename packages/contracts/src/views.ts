@@ -24,12 +24,52 @@ export interface StockView {
   readonly borrowAvailable: number
   readonly bandLow: number
   readonly bandHigh: number
+  /** ISO time until which trading is paused after mechanical news, if any. */
+  readonly pausedUntil: string | null
+}
+
+export interface RoundView {
+  readonly id: string
+  readonly sequence: number
+  readonly kind: 'practice' | 'scored'
+  readonly status: 'pending' | 'running' | 'paused' | 'ended'
+  readonly durationMs: number
+  /** Active time left, as of serverTime. Counts down only while running. */
+  readonly remainingMs: number
 }
 
 export interface MarketView {
   readonly roomStatus: RoomStatus
   readonly marketVersion: number
+  /** The latest round that is not ended, else the last ended one; null before any round. */
+  readonly round: RoundView | null
+  readonly serverTime: string
   readonly stocks: readonly StockView[]
+}
+
+/** Participant-facing news: never includes impacts or unpublished items. */
+export interface NewsView {
+  readonly id: string
+  readonly headline: string
+  readonly body: string
+  readonly sourceLabel: string | null
+  readonly publishedAt: string
+}
+
+export interface HostNewsView extends Omit<NewsView, 'publishedAt'> {
+  readonly kind: 'mechanical' | 'information'
+  readonly status: 'draft' | 'scheduled' | 'published'
+  readonly impacts: Readonly<Record<string, number>>
+  readonly scheduledAtMs: number | null
+  readonly publishedAt: string | null
+}
+
+export interface LeaderboardEntry {
+  readonly teamId: string
+  readonly name: string
+  readonly status: 'active' | 'frozen' | 'disqualified'
+  readonly liquidationValuePaise: number
+  readonly rank: number
 }
 
 export interface PositionView {

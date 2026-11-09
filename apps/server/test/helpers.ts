@@ -8,7 +8,13 @@ import { TEST_DATABASE_URL } from './global-setup.ts'
 
 export async function buildTestApp(): Promise<FastifyInstance> {
   const app = await buildApp(
-    loadConfig({ LOG_LEVEL: 'silent', DATABASE_URL: TEST_DATABASE_URL, NODE_ENV: 'test', LOGIN_RATE_LIMIT_MAX: '1000' }),
+    loadConfig({
+      LOG_LEVEL: 'silent',
+      DATABASE_URL: TEST_DATABASE_URL,
+      NODE_ENV: 'test',
+      LOGIN_RATE_LIMIT_MAX: '1000',
+      TICKER_ENABLED: 'false',
+    }),
   )
   await app.ready()
   return app
@@ -63,7 +69,15 @@ interface RoomFixture {
 /** Creates a room with stocks and teams via the host API, then opens practice. */
 export async function setupRoom(
   app: FastifyInstance,
-  opts: { code?: string; teams?: number; rules?: Partial<RoomRules>; status?: 'practice' | 'draft' } = {},
+  opts: {
+    code?: string
+    teams?: number
+    rules?: Partial<RoomRules>
+    status?: 'practice' | 'draft'
+    /** Create and start a round so trading is open (default true when practising). */
+    round?: boolean
+    stocks?: CreateStock[]
+  } = {},
 ): Promise<RoomFixture> {
   const host = await loginHost(app)
   const code = opts.code ?? 'TEST01'
@@ -75,7 +89,7 @@ export async function setupRoom(
   })
   const roomId: string = room.json().data.id
   const stocks: Record<string, string> = {}
-  for (const stock of [THIN_STOCK, DEEP_STOCK]) {
+  for (const stock of opts.stocks ?? [THIN_STOCK, DEEP_STOCK]) {
     const created = await app.inject({ method: 'POST', url: `/api/host/rooms/${roomId}/stocks`, cookies: host, payload: stock })
     stocks[stock.ticker] = created.json().data.id
   }
@@ -88,6 +102,7 @@ export async function setupRoom(
   await app.inject({ method: 'POST', url: `/api/host/rooms/${roomId}/teams`, cookies: host, payload: { teams } })
   if ((opts.status ?? 'practice') === 'practice') {
     await app.inject({ method: 'POST', url: `/api/host/rooms/${roomId}/status`, cookies: host, payload: { status: 'practice' } })
+    if (opts.round ?? true) await startRound(app, host, roomId)
   }
   const sessions: Session[] = []
   for (const team of teams) {
@@ -108,4 +123,15 @@ export function order(
   extra: { requestId?: string; limitPrice?: number } = {},
 ): Record<string, unknown> {
   return { requestId: extra.requestId ?? randomUUID(), stockId, intent, quantity, ...(extra.limitPrice ? { limitPrice: extra.limitPrice } : {}) }
+}
+
+/** Creates a round and starts it. */
+export async function startRound(app: FastifyInstance, host: Session, roomId: string, durationMinutes = 20): Promise<void> {
+  const created = await app.inject({ method: 'POST', url: `/api/host/rooms/${roomId}/rounds`, cookies: host, payload: { durationMinutes } })
+  if (created.statusCode !== 200) throw new Error(`create round failed: ${created.body}`)
+  await roundAction(app, host, roomId, 'start')
+}
+
+export async function roundAction(app: FastifyInstance, host: Session, roomId: string, action: 'start' | 'pause' | 'resume' | 'end') {
+  return app.inject({ method: 'POST', url: `/api/host/rooms/${roomId}/rounds/current/${action}`, cookies: host })
 }

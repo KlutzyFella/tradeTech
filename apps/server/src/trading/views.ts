@@ -2,6 +2,7 @@ import type { MarketView, OrderView, PortfolioView, PositionView, RoomStatus } f
 import { portfolioMetrics } from '@tradetech/engine'
 import type { Order, PrismaClient } from '../generated/prisma/client.ts'
 import { parseRoomRules } from '../rooms/rules.ts'
+import { latestRound, toRoundView } from '../rounds/clock.ts'
 import { quotesFor, stockMid, toPaise, toStockView } from './market-state.ts'
 
 const ORDER_HISTORY_LIMIT = 100
@@ -29,10 +30,14 @@ export async function getMarketView(db: PrismaClient, roomId: bigint): Promise<M
     where: { id: roomId },
     include: { stocks: { orderBy: { ticker: 'asc' } } },
   })
+  const round = await latestRound(db, roomId)
+  const now = new Date()
   return {
     roomStatus: room.status as RoomStatus,
     marketVersion: Number(room.marketVersion),
-    stocks: room.stocks.map(toStockView),
+    round: round ? toRoundView(round, now) : null,
+    serverTime: now.toISOString(),
+    stocks: room.stocks.map((s) => toStockView(s, now)),
   }
 }
 

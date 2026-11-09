@@ -29,3 +29,5 @@ export {
 } from './orders.ts'
 export { applyFillToPosition, portfolioMetrics, type PortfolioMetrics, type PositionBook } from './portfolio.ts'
 export { DEFAULT_RISK_RULES, type RiskRules } from './rules.ts'
+export { closingFill, maintenanceStatus, type ClosingFill, type MaintenanceStatus } from './maintenance.ts'
+export { DEFAULT_MAINTENANCE_RULES, type MaintenanceRules } from './rules.ts'

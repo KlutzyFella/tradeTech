@@ -30,7 +30,7 @@ export function quotesFor(stocks: readonly Stock[], rules: RoomRules): Map<strin
   return new Map(stocks.map((s) => [s.id.toString(), stockQuote(s, rules)]))
 }
 
-export function toStockView(stock: Stock): StockView {
+export function toStockView(stock: Stock, now = new Date()): StockView {
   const mid = stockMid(stock)
   const state = stockTradingState(stock)
   return {
@@ -47,6 +47,7 @@ export function toStockView(stock: Stock): StockView {
     borrowAvailable: state.borrowAvailable,
     bandLow: state.bandLow,
     bandHigh: state.bandHigh,
+    pausedUntil: stock.reopensAt && stock.reopensAt > now ? stock.reopensAt.toISOString() : null,
   }
 }
 
