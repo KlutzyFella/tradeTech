@@ -1,4 +1,5 @@
 import { LoginScreen } from "@/features/auth/LoginScreen"
+import { HostApp } from "@/features/host/HostApp"
 import { TeamShell } from "@/features/shell/TeamShell"
 import { useMe } from "@/lib/queries"
 
@@ -10,12 +11,7 @@ export function App() {
   }
   if (!me.data) return <LoginScreen />
   if (me.data.kind === "team") return <TeamShell me={me.data} />
-  return (
-    <main className="mx-auto max-w-sm p-6">
-      <h1 className="text-xl font-semibold">Signed in as host</h1>
-      <p className="mt-2 text-muted-foreground">The host console is the next build step. Use the host API for now.</p>
-    </main>
-  )
+  return <HostApp me={me.data} />
 }
 
 export default App

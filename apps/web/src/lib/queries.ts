@@ -1,4 +1,4 @@
-import type { MarketView, Me, OrderView, PortfolioView } from "@tradetech/contracts"
+import type { MarketView, Me, NewsView, OrderView, PortfolioView } from "@tradetech/contracts"
 import { useQuery } from "@tanstack/react-query"
 import { api, ApiError } from "./api"
 import { queryKeys } from "./live"
@@ -22,5 +22,7 @@ export const useMarket = () => useQuery({ queryKey: queryKeys.market, queryFn: (
 
 export const usePortfolio = () =>
   useQuery({ queryKey: queryKeys.portfolio, queryFn: () => api.get<PortfolioView>("/portfolio") })
+
+export const useNews = () => useQuery({ queryKey: queryKeys.news, queryFn: () => api.get<NewsView[]>("/news") })
 
 export const useOrders = () => useQuery({ queryKey: queryKeys.orders, queryFn: () => api.get<OrderView[]>("/orders") })

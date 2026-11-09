@@ -30,6 +30,8 @@ export default async function globalSetup(): Promise<void> {
   })
   await call(`/host/rooms/${room.id}/teams`, { teams: [{ name: "Bulls", loginName: "bulls", password: "bulls-password" }] })
   await call(`/host/rooms/${room.id}/status`, { status: "practice" })
+  await call(`/host/rooms/${room.id}/rounds`, { durationMinutes: 30 })
+  await call(`/host/rooms/${room.id}/rounds/current/start`, {})
   await ctx.dispose()
   writeFileSync(FIXTURE_PATH, JSON.stringify({ code, loginName: "bulls", password: "bulls-password" }))
 }

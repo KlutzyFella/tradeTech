@@ -1,12 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { io } from "socket.io-client"
+import { toast } from "sonner"
 
 export const queryKeys = {
   me: ["me"] as const,
   market: ["market"] as const,
   portfolio: ["portfolio"] as const,
   orders: ["orders"] as const,
+  news: ["news"] as const,
 }
 
 /**
@@ -33,7 +35,12 @@ export function useLiveUpdates(enabled: boolean): { connected: boolean } {
       void queryClient.invalidateQueries({ queryKey: queryKeys.market })
       void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio })
     })
-    socket.on("orders:changed", () => {
+    socket.on("news:published", () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.news })
+      toast.info("Breaking news — check the News tab.")
+    })
+    socket.on("orders:changed", (payload: { liquidated?: boolean }) => {
+      if (payload?.liquidated) toast.warning("Your positions were closed because your account fell below the margin requirement.")
       void queryClient.invalidateQueries({ queryKey: queryKeys.orders })
       void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio })
     })

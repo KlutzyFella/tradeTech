@@ -95,6 +95,15 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
   const previewBlocks = preview.data?.ok === false && debouncedTicket === ticket
   const rejected = place.data?.order.status === "rejected" ? place.data.order : null
   const outcomeUnknown = place.error instanceof NetworkError
+  // The server sends pausedUntil only while the pause is in force; flip it off locally at expiry.
+  const [expiredPause, setExpiredPause] = useState<string | null>(null)
+  useEffect(() => {
+    const until = stock.pausedUntil
+    if (!until) return
+    const id = setTimeout(() => setExpiredPause(until), Math.max(0, new Date(until).getTime() - Date.now()))
+    return () => clearTimeout(id)
+  }, [stock.pausedUntil])
+  const newsPaused = stock.pausedUntil !== null && expiredPause !== stock.pausedUntil
 
   const chosen = INTENTS.find((i) => i.intent === intent)!
   return (
@@ -107,6 +116,10 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
         <p className="figures text-xl font-semibold">{formatPrice(stock.mid)}</p>
       </header>
       {stock.profile && <p className="text-sm text-muted-foreground">{stock.profile}</p>}
+      {stock.halted && <p role="status" className="text-sm font-medium text-destructive">Trading in {stock.ticker} is halted by the host.</p>}
+      {!stock.halted && newsPaused && (
+        <p role="status" className="text-sm font-medium">Trading reopens in a few seconds while prices update for the news.</p>
+      )}
       <p className="text-sm">
         {held > 0 && `You hold ${formatShares(held)} shares.`}
         {held < 0 && `You are short ${formatShares(-held)} shares.`}
@@ -163,7 +176,7 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
         <Button
           size="lg"
           className="h-12 bg-slip text-base text-slip-foreground hover:bg-slip/90"
-          disabled={!validQuantity || !allowed.has(intent) || stock.halted || place.isPending || previewBlocks}
+          disabled={!validQuantity || !allowed.has(intent) || stock.halted || newsPaused || place.isPending || previewBlocks}
           onClick={() => place.mutate()}
         >
           {place.isPending ? "Sending order…" : `${chosen.label} ${validQuantity ? formatShares(quantity) : ""} ${stock.ticker}`}

@@ -56,6 +56,7 @@ function StockRow({ stock, held, onSelect }: { stock: StockView; held: number; o
         <span className="flex items-center gap-2 font-semibold">
           {stock.ticker}
           {stock.halted && <Badge variant="destructive">Halted</Badge>}
+          {!stock.halted && stock.pausedUntil && <Badge variant="outline">News pause</Badge>}
         </span>
         <span className="truncate text-sm text-muted-foreground">
           {stock.name}
