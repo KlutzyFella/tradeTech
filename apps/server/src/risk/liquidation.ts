@@ -50,9 +50,11 @@ export async function enforceMaintenance(tx: Tx, roomId: bigint, now: Date): Pro
       cash += fill.cashDeltaPaise
       closed += 1
     }
-    if (closed === 0 && cash >= 0n) continue
+    const insolvent = deferred === 0 && cash < 0n
+    // Nothing closed and nothing newly decided: wait quietly for halted stocks to reopen.
+    if (closed === 0 && !insolvent) continue
 
-    if (deferred === 0 && cash < 0n) {
+    if (insolvent) {
       await tx.team.update({ where: { id: team.id }, data: { status: 'frozen', statusReason: 'Insolvent after margin liquidation' } })
     }
     await appendRoomEvent(tx, roomId, {

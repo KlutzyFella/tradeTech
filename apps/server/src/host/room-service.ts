@@ -140,7 +140,8 @@ export async function setRoomStatus(db: PrismaClient, room: Room, status: RoomSt
     // Going live or closing ends any unfinished round (a practice round never carries into scoring).
     if (status === 'live' || status === 'closed') await endUnfinishedRound(tx, room.id, new Date())
     if (status === 'live' && (current === 'practice' || current === 'draft')) await wipePracticeState(tx, room.id)
-    await tx.room.update({ where: { id: room.id }, data: { status } })
+    const firstTimeLive = status === 'live' && (current === 'practice' || current === 'draft')
+    await tx.room.update({ where: { id: room.id }, data: { status, ...(firstTimeLive ? { liveSince: new Date() } : {}) } })
     await appendRoomEvent(tx, room.id, { type: 'room_status', payload: { from: current, to: status }, isPublic: true, marketChanged: false })
     return status
   })
@@ -173,9 +174,20 @@ async function wipePracticeState(tx: Tx, roomId: bigint): Promise<void> {
   for (const stock of stocks) {
     await tx.stock.update({
       where: { id: stock.id },
-      data: { anchor: stock.openingPrice, pressure: 0, noise: 0, borrowUsed: 0, halted: false, bandReference: stock.openingPrice },
+      data: {
+        anchor: stock.openingPrice,
+        pressure: 0,
+        noise: 0,
+        borrowUsed: 0,
+        halted: false,
+        haltReason: null,
+        reopensAt: null,
+        bandReference: stock.openingPrice,
+      },
     })
   }
+  // Unfired practice news becomes a draft: it must never fire into a later round by accident.
+  await tx.newsItem.updateMany({ where: { roomId, status: 'scheduled' }, data: { status: 'draft', roundId: null, scheduledAtMs: null } })
   const teams = await tx.team.findMany({ where: { roomId } })
   const adjustments = teams
     .map((team) => ({ team, delta: room.startingCashPaise - team.cashPaise }))

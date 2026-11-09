@@ -9,7 +9,9 @@ const UNFINISHED = ['pending', 'running', 'paused'] as const
 
 /** Active elapsed time as of `now`: stored elapsed plus time since the last tick while running. */
 export function activeElapsedMs(round: Round, now: Date): number {
-  const pending = round.status === 'running' && round.lastTickAt ? Math.max(0, now.getTime() - round.lastTickAt.getTime()) : 0
+  // Capped like a tick, so a stalled ticker never books more active time than ticking would.
+  const pending =
+    round.status === 'running' && round.lastTickAt ? Math.min(MAX_TICK_MS, Math.max(0, now.getTime() - round.lastTickAt.getTime())) : 0
   return Math.min(round.durationMs, round.activeElapsedMs + pending)
 }
 

@@ -115,6 +115,8 @@ model Room {
   nextEventOffset   BigInt     @default(0)
   /// Next server acceptance sequence for orders.
   nextOrderSeq      BigInt     @default(1)
+  /// When the room went live; practice-era news is hidden from teams after this.
+  liveSince         DateTime?  @db.Timestamptz(3)
   createdAt         DateTime   @default(now()) @db.Timestamptz(3)
 
   host   Host          @relation(fields: [hostId], references: [id], onDelete: Restrict)

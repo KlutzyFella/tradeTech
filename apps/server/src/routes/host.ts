@@ -4,6 +4,7 @@ import {
   idSchema,
   setRoomStatusSchema,
   teamImportSchema,
+  type HostRoomView,
 } from '@tradetech/contracts'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { z } from 'zod'
@@ -19,6 +20,7 @@ import {
 import { ok, parseInput } from '../http/errors.ts'
 import { hostAuth, requireHost } from '../plugins/auth.ts'
 import { signal } from '../plugins/realtime.ts'
+import { latestRound, toRoundView } from '../rounds/clock.ts'
 import { toStockView } from '../trading/market-state.ts'
 
 const roomParams = z.object({ roomId: idSchema })
@@ -49,17 +51,26 @@ export const hostRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/host/rooms/:roomId', async (request) => {
     const room = await roomOverview(app.db, (await loadRoom(request)).id)
+    const round = await latestRound(app.db, room.id)
+    const now = new Date()
     return ok({
       id: room.id.toString(),
       code: room.code,
       name: room.name,
       status: room.status,
       startingCashPaise: Number(room.startingCashPaise),
-      rules: room.rules,
       marketVersion: Number(room.marketVersion),
-      stocks: room.stocks.map((s) => ({ ...toStockView(s), depth: s.depth, sensitivity: s.sensitivity, borrowPool: s.borrowPool, borrowUsed: s.borrowUsed })),
+      round: round ? toRoundView(round, now) : null,
+      stocks: room.stocks.map((s) => ({
+        ...toStockView(s, now),
+        depth: s.depth,
+        sensitivity: s.sensitivity,
+        borrowPool: s.borrowPool,
+        borrowUsed: s.borrowUsed,
+        haltReason: s.haltReason,
+      })),
       teams: room.teams.map((t) => ({ ...t, id: t.id.toString(), cashPaise: Number(t.cashPaise) })),
-    })
+    } satisfies HostRoomView)
   })
 
   app.post('/host/rooms/:roomId/teams', async (request) => {

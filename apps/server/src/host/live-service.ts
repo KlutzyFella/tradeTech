@@ -47,7 +47,8 @@ export async function leaderboard(db: PrismaClient, roomId: bigint): Promise<Lea
       teamId: team.id.toString(),
       name: team.name,
       status: team.status,
-      liquidationValuePaise: Math.floor(
+      // Round (not floor) so float noise like 100028.9999… can't split a genuine tie.
+      liquidationValuePaise: Math.round(
         liquidationValue(Number(team.cashPaise) / 100, new Map(team.positions.map((p) => [p.stockId.toString(), p.quantity])), quotes) * 100,
       ),
     }))

@@ -51,9 +51,22 @@ async function assertImpactsInRoom(tx: Tx, roomId: bigint, impacts: Record<strin
   if (found !== ids.length) throw new AppError(400, 'validation_failed', 'News refers to a stock that isn’t in this room.')
 }
 
+/**
+ * Price-moving news may only publish while a round is open (running or
+ * paused) in a practice or live room — never between rounds or after close.
+ */
+async function assertCanMovePrices(tx: Tx, roomId: bigint): Promise<void> {
+  const room = await tx.room.findUniqueOrThrow({ where: { id: roomId }, select: { status: true } })
+  const round = await tx.round.findFirst({ where: { roomId, status: { in: ['running', 'paused'] } }, select: { id: true } })
+  if ((room.status !== 'practice' && room.status !== 'live') || !round) {
+    throw new AppError(409, 'no_open_round', 'Price-moving news can only be published during a round.')
+  }
+}
+
 export async function createNews(db: PrismaClient, room: Room, input: NewsInput, now = new Date()): Promise<HostNewsView> {
   return withRoomLock(db, room.id, async (tx) => {
     await assertImpactsInRoom(tx, room.id, input.impacts)
+    if (input.mode === 'publish' && input.kind === 'mechanical') await assertCanMovePrices(tx, room.id)
     let roundId: bigint | null = null
     if (input.mode === 'schedule') {
       const round = await unfinishedRound(tx, room.id)
@@ -84,6 +97,7 @@ export async function publishNow(db: PrismaClient, room: Room, newsId: bigint, n
     const item = await tx.newsItem.findFirst({ where: { id: newsId, roomId: room.id } })
     if (!item) throw notFound('News item')
     if (item.status === 'published') throw new AppError(409, 'already_published', 'This item is already published.')
+    if (item.kind === 'mechanical') await assertCanMovePrices(tx, room.id)
     await publishNewsItem(tx, item, now)
   })
 }
@@ -104,8 +118,10 @@ export function toHostNewsView(item: NewsItem): HostNewsView {
 
 /** Participant view: published items only, public fields only. */
 export async function listPublicNews(db: PrismaClient, roomId: bigint): Promise<NewsView[]> {
+  const room = await db.room.findUniqueOrThrow({ where: { id: roomId }, select: { liveSince: true } })
   const items = await db.newsItem.findMany({
-    where: { roomId, status: 'published' },
+    // Once live, practice-era headlines are no longer part of the story.
+    where: { roomId, status: 'published', ...(room.liveSince ? { publishedAt: { gte: room.liveSince } } : {}) },
     orderBy: { publishedAt: 'desc' },
     select: { id: true, headline: true, body: true, sourceLabel: true, publishedAt: true },
   })

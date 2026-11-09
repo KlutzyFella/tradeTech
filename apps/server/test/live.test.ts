@@ -75,9 +75,17 @@ describe('rounds and the server clock', () => {
 
   it('pauses running rounds after a restart instead of counting downtime', async () => {
     const { roomId } = await setupRoom(app)
-    await recoverRunningRounds(app.db)
+    const later = new Date(Date.now() + 60_000) // the last tick was a minute before "now"
+    await recoverRunningRounds(app.db, later)
     const round = await app.db.round.findFirstOrThrow({ where: { roomId: BigInt(roomId) } })
     expect(round.status).toBe('paused')
+  })
+
+  it('leaves rounds alone that another server instance is actively ticking', async () => {
+    const { roomId } = await setupRoom(app)
+    await recoverRunningRounds(app.db, new Date())
+    const round = await app.db.round.findFirstOrThrow({ where: { roomId: BigInt(roomId) } })
+    expect(round.status).toBe('running')
   })
 })
 
@@ -125,6 +133,26 @@ describe('host news', () => {
     expect(thin).toMatchObject({ halted: true, mid: expect.closeTo(130, 6) })
     const response = await place(teams[0]!, stocks.THIN!, 'buy', 1)
     expect(response.json().data.order).toMatchObject({ status: 'rejected', rejectReason: 'halted' })
+  })
+
+  it('refuses price-moving news when no round is open', async () => {
+    const { stocks, host, roomId } = await setupRoom(app, { round: false })
+    const response = await publish(host, roomId, { headline: 'Off-hours', kind: 'mechanical', impacts: { [stocks.THIN!]: 0.05 }, mode: 'publish' })
+    expect(response.statusCode).toBe(409)
+  })
+
+  it('keeps practice news out of the live event', async () => {
+    const { teams, stocks, host, roomId } = await setupRoom(app, { rules: { newsPauseMs: 0 } })
+    await publish(host, roomId, { headline: 'Practice headline', kind: 'mechanical', impacts: { [stocks.THIN!]: 0.05 }, mode: 'publish' })
+    await publish(host, roomId, { headline: 'Never fired', kind: 'information', mode: 'schedule', scheduleAtMinute: 10 })
+    await app.inject({ method: 'POST', url: `/api/host/rooms/${roomId}/status`, cookies: host, payload: { status: 'live' } })
+
+    const news = (await app.inject({ method: 'GET', url: '/api/news', cookies: teams[0]! })).json().data
+    expect(news).toEqual([])
+    const hostNews = (await app.inject({ method: 'GET', url: `/api/host/rooms/${roomId}/news`, cookies: host })).json().data
+    expect(hostNews.find((n: { headline: string }) => n.headline === 'Never fired').status).toBe('draft')
+    const thin = await app.db.stock.findFirstOrThrow({ where: { ticker: 'THIN' } })
+    expect([thin.anchor, thin.reopensAt, thin.haltReason]).toEqual([100, null, null])
   })
 
   it('fires scheduled news when the round reaches its minute', async () => {

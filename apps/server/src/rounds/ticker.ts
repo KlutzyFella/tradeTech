@@ -63,14 +63,19 @@ export async function tickRoom(db: PrismaClient, roomId: bigint, now: Date): Pro
  * After a restart, running rounds resume paused: downtime is never counted
  * as active time, and the host resumes explicitly (blueprint §10).
  */
-export async function recoverRunningRounds(db: PrismaClient): Promise<number> {
-  const running = await db.round.findMany({ where: { status: 'running' } })
+export async function recoverRunningRounds(db: PrismaClient, now = new Date()): Promise<number> {
+  // A round ticked within the last few seconds is being driven by another
+  // live instance (rolling deploy, second server): leave it running.
+  const staleBefore = new Date(now.getTime() - 2 * MAX_TICK_MS)
+  const running = await db.round.findMany({
+    where: { status: 'running', OR: [{ lastTickAt: null }, { lastTickAt: { lt: staleBefore } }] },
+  })
   for (const round of running) {
     await withRoomLock(db, round.roomId, async (tx) => {
       const fresh = await tx.round.findUniqueOrThrow({ where: { id: round.id } })
       if (fresh.status !== 'running') return
       // Only time up to the last recorded tick counts.
-      await transitionRound(tx, { ...fresh, lastTickAt: null }, 'paused', new Date())
+      await transitionRound(tx, { ...fresh, lastTickAt: null }, 'paused', now)
     })
   }
   return running.length
@@ -93,7 +98,14 @@ const ticker: FastifyPluginAsync<TickerOptions> = async (app, opts) => {
     try {
       const rooms = await app.db.round.findMany({ where: { status: 'running' }, select: { roomId: true } })
       for (const { roomId } of rooms) {
-        const result = await tickRoom(app.db, roomId, new Date())
+        // Isolate rooms: one room's failure must not stop every other room's clock.
+        let result: TickResult
+        try {
+          result = await tickRoom(app.db, roomId, new Date())
+        } catch (error: unknown) {
+          app.log.error({ err: error, roomId: roomId.toString() }, 'room tick failed')
+          continue
+        }
         // Pressure fades continuously; announce it every few beats to bound refetch load.
         if (result.newsPublished > 0 || result.roundEnded || result.liquidatedTeams.length > 0 || (result.pressureMoved && beat % 3 === 0)) {
           signal(app, `room:${roomId}`, 'market:changed', {})

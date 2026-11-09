@@ -129,3 +129,38 @@ export interface PlaceOrderResult {
   /** True when this requestId was already processed and the stored result is returned. */
   readonly replayed: boolean
 }
+
+export interface HostStockView extends StockView {
+  readonly depth: number
+  readonly sensitivity: number
+  readonly borrowPool: number
+  readonly borrowUsed: number
+  readonly haltReason: string | null
+}
+
+export interface HostTeamView {
+  readonly id: string
+  readonly name: string
+  readonly loginName: string
+  readonly status: 'active' | 'frozen' | 'disqualified'
+  readonly cashPaise: number
+}
+
+export interface HostRoomView {
+  readonly id: string
+  readonly code: string
+  readonly name: string
+  readonly status: RoomStatus
+  readonly startingCashPaise: number
+  readonly marketVersion: number
+  readonly round: RoundView | null
+  readonly stocks: readonly HostStockView[]
+  readonly teams: readonly HostTeamView[]
+}
+
+export interface HostRoomSummary {
+  readonly id: string
+  readonly code: string
+  readonly name: string
+  readonly status: RoomStatus
+}
