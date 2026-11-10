@@ -18,10 +18,21 @@ export class AppError extends Error {
 
 export const notFound = (what: string): AppError => new AppError(404, 'not_found', `${what} not found`)
 
+/** A human-readable message for the first validation problem, naming the field. */
+function describeIssue(issue: z.core.$ZodIssue | undefined): string {
+  if (!issue) return 'Some fields are invalid.'
+  const field = issue.path.length > 0 ? issue.path.join('.') : null
+  let problem = issue.message
+  if (issue.code === 'too_small' && issue.origin === 'string') problem = `must be at least ${String(issue.minimum)} characters`
+  else if (issue.code === 'too_big' && issue.origin === 'string') problem = `must be at most ${String(issue.maximum)} characters`
+  else if (issue.code === 'unrecognized_keys') problem = `unexpected field${issue.keys.length > 1 ? 's' : ''} ${issue.keys.join(', ')}`
+  return field ? `${field}: ${problem}` : `Invalid request: ${problem}`
+}
+
 export function parseInput<T extends z.ZodType>(schema: T, input: unknown): z.infer<T> {
   const parsed = schema.safeParse(input)
   if (!parsed.success) {
-    throw new AppError(400, 'validation_failed', 'Some fields are invalid.', z.flattenError(parsed.error))
+    throw new AppError(400, 'validation_failed', describeIssue(parsed.error.issues[0]), z.flattenError(parsed.error))
   }
   return parsed.data
 }

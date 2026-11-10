@@ -92,6 +92,18 @@ describe('authentication and room scoping', () => {
   })
 })
 
+describe('validation messages', () => {
+  it('names the field and the problem instead of a generic error', async () => {
+    const { host, roomId } = await setupRoom(app)
+    const team = (await app.inject({ method: 'GET', url: `/api/host/rooms/${roomId}`, cookies: host })).json().data.teams[0]
+    const url = `/api/host/rooms/${roomId}/teams/${team.id}/password`
+    const short = await app.inject({ method: 'POST', url, cookies: host, payload: { password: 'short' } })
+    expect(short.json().error.message).toBe('password: must be at least 8 characters')
+    const extra = await app.inject({ method: 'POST', url, cookies: host, payload: { password: 'long-enough-1', teamId: team.id } })
+    expect(extra.json().error.message).toBe('Invalid request: unexpected field teamId')
+  })
+})
+
 describe('login rate limiting', () => {
   it('locks out one account without blocking other teams on the same IP', async () => {
     const limited = await buildApp(

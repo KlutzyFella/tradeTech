@@ -30,14 +30,26 @@ export const useHostNews = (roomId: string) =>
     refetchInterval: HOST_POLL_MS,
   })
 
+interface HostActionOptions<TVars> {
+  /** Toast shown on success. */
+  success?: string
+  /**
+   * The request body. Defaults to the variables as-is; set it whenever the
+   * variables also carry URL parameters (ids), because the server rejects
+   * unknown body fields.
+   */
+  body?: (vars: TVars) => unknown
+}
+
 /**
  * A host command against one room: POSTs, refreshes everything about the
  * room, and reports success or the server's explanation as a toast.
  */
-export function useHostAction<TBody = unknown>(roomId: string, path: (body: TBody) => string, success?: string) {
+export function useHostAction<TVars = unknown>(roomId: string, path: (vars: TVars) => string, options: HostActionOptions<TVars> = {}) {
   const queryClient = useQueryClient()
+  const { success, body = (vars: TVars) => vars } = options
   return useMutation({
-    mutationFn: (body: TBody) => api.post(`/host/rooms/${roomId}${path(body)}`, body ?? {}),
+    mutationFn: (vars: TVars) => api.post(`/host/rooms/${roomId}${path(vars)}`, body(vars) ?? {}),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["host"] })
       if (success) toast.success(success)

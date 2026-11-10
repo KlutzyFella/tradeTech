@@ -26,7 +26,7 @@ export function SetupPanel({ room }: { room: HostRoomView }) {
 function Stocks({ room, locked }: { room: HostRoomView; locked: boolean }) {
   const blank = { ticker: "", name: "", sector: "", openingPrice: "", depth: "", borrowPool: "", profile: "" }
   const [form, setForm] = useState(blank)
-  const add = useHostAction<Record<string, unknown>>(room.id, () => "/stocks", "Stock added")
+  const add = useHostAction<Record<string, unknown>>(room.id, () => "/stocks", { success: "Stock added" })
   const price = Number(form.openingPrice)
   const depth = form.depth ? Number(form.depth) : price > 0 ? suggestedDepth(price, room.teams.length, room.startingCashPaise) : 0
   const field = (key: keyof typeof blank, label: string, numeric = false) => (
@@ -100,9 +100,14 @@ function Stocks({ room, locked }: { room: HostRoomView; locked: boolean }) {
 
 function Teams({ room, locked }: { room: HostRoomView; locked: boolean }) {
   const [text, setText] = useState("")
-  const importTeams = useHostAction<{ teams: { name: string; loginName: string; password: string }[] }>(room.id, () => "/teams", "Teams added")
-  const resetPassword = useHostAction<{ teamId: string; password: string }>(room.id, (b) => `/teams/${b.teamId}/password`, "Password reset — the team has been signed out")
-  const setStatus = useHostAction<{ teamId: string; status: "active" | "disqualified"; reason: string }>(room.id, (b) => `/teams/${b.teamId}/status`)
+  const importTeams = useHostAction<{ teams: { name: string; loginName: string; password: string }[] }>(room.id, () => "/teams", { success: "Teams added" })
+  const resetPassword = useHostAction<{ teamId: string; password: string }>(room.id, (v) => `/teams/${v.teamId}/password`, {
+    success: "Password reset — the team has been signed out",
+    body: ({ password }) => ({ password }),
+  })
+  const setStatus = useHostAction<{ teamId: string; status: "active" | "disqualified"; reason: string }>(room.id, (v) => `/teams/${v.teamId}/status`, {
+    body: ({ status, reason }) => ({ status, reason }),
+  })
   const closed = room.status === "closed"
   const rows = text
     .split("\n")

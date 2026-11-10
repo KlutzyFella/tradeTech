@@ -26,7 +26,7 @@ const PHASE_COPY: Record<RoomStatus, string> = {
 
 export function ControlPanel({ room, fetchedAt }: { room: HostRoomView; fetchedAt: number }) {
   const setStatus = useHostAction<{ status: RoomStatus }>(room.id, () => "/status")
-  const reset = useHostAction(room.id, () => "/reset-practice", "Practice reset")
+  const reset = useHostAction(room.id, () => "/reset-practice", { success: "Practice reset" })
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
@@ -59,7 +59,7 @@ export function ControlPanel({ room, fetchedAt }: { room: HostRoomView; fetchedA
 function RoundControls({ room, fetchedAt }: { room: HostRoomView; fetchedAt: number }) {
   const [minutes, setMinutes] = useState("20")
   const create = useHostAction<{ durationMinutes: number }>(room.id, () => "/rounds")
-  const act = useHostAction<{ action: "start" | "pause" | "resume" | "end" }>(room.id, (b) => `/rounds/current/${b.action}`)
+  const act = useHostAction<{ action: "start" | "pause" | "resume" | "end" }>(room.id, (v) => `/rounds/current/${v.action}`, { body: () => ({}) })
   const round = room.round
   const remaining = useCountdown(round, fetchedAt)
   const canCreate = (room.status === "practice" || room.status === "live") && (!round || round.status === "ended")
@@ -103,7 +103,9 @@ function RoundControls({ room, fetchedAt }: { room: HostRoomView; fetchedAt: num
 }
 
 function StockMonitor({ room }: { room: HostRoomView }) {
-  const halt = useHostAction<{ stockId: string; halted: boolean; rebaseBand: boolean }>(room.id, (b) => `/stocks/${b.stockId}/halt`)
+  const halt = useHostAction<{ stockId: string; halted: boolean; rebaseBand: boolean }>(room.id, (v) => `/stocks/${v.stockId}/halt`, {
+    body: ({ halted, rebaseBand }) => ({ halted, rebaseBand }),
+  })
   return (
     <section className="flex flex-col gap-2">
       <h2 className="font-semibold">Market</h2>

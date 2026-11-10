@@ -19,7 +19,7 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
   const [minute, setMinute] = useState("")
   const create = useHostAction<Record<string, unknown>>(room.id, () => "/news")
   const news = useHostNews(room.id)
-  const publishDraft = useHostAction<{ id: string }>(room.id, (b) => `/news/${b.id}/publish`, "Published")
+  const publishDraft = useHostAction<{ id: string }>(room.id, (v) => `/news/${v.id}/publish`, { success: "Published", body: () => ({}) })
 
   const impacts = Object.fromEntries(
     Object.entries(shocks)
