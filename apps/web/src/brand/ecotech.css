@@ -1,0 +1,36 @@
+/*
+ * Brand primitives: EcoTech (first client).
+ *
+ * Sampled from the club logo: red #C12526 on charcoal #191919.
+ * Contrast notes (WCAG 2.2):
+ *   - brand red on charcoal is 2.98:1, so it is never used for text or thin
+ *     indicators on dark backgrounds. Use --brand-red-lifted (5.3:1) instead.
+ *   - white on brand red is 5.9:1, so filled buttons are safe.
+ *
+ * To add a client, copy this file, change the values and the asset paths in
+ * src/brand/index.ts, and import it from index.css instead of this one.
+ */
+:root {
+  --brand-red: #c12526;
+  --brand-red-hover: #a51f20;
+  --brand-red-lifted: #f2595b;
+  --brand-charcoal: #191919;
+
+  /* Warm neutrals tuned to the logo's charcoal. */
+  --neutral-950: #111111;
+  --neutral-900: #191919;
+  --neutral-850: #1f1f1f;
+  --neutral-800: #262626;
+  --neutral-750: #2e2e2e;
+  --neutral-700: #3a3936;
+  --neutral-500: #6f6a64;
+  --neutral-400: #a39e98;
+  --neutral-200: #dad6d1;
+  --neutral-150: #e6e2dd;
+  --neutral-100: #edeae6;
+  --neutral-50: #f6f4f1;
+
+  --green-dark-bg: #3dd68c;
+  --green-light-bg: #0e7a4b;
+  --coral-dark-bg: #ff6b6b;
+}

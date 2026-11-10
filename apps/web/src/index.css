@@ -1,17 +1,33 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jost";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "./brand/ecotech.css";
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Token layers: brand primitives (src/brand/*.css) → semantic tokens (below,
+ * per theme) → component tokens (ticket, tints, flashes). Components use only
+ * semantic or component tokens, never raw colours.
+ */
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    /* Jost echoes the club's geometric wordmark; Plex Sans carries body text and tabular figures. */
+    --font-heading: "Jost Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
     --color-gain: var(--gain);
     --color-loss: var(--loss);
-    --color-slip: var(--slip);
-    --color-slip-foreground: var(--slip-foreground);
+    --color-gain-tint: var(--gain-tint);
+    --color-loss-tint: var(--loss-tint);
+    --color-brand: var(--brand);
+    --color-brand-foreground: var(--brand-foreground);
+    --color-brand-text: var(--brand-text);
+    --color-surface: var(--surface);
+    --color-surface-raised: var(--surface-raised);
+    --color-warning: var(--warning);
+
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -43,103 +59,155 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
+
+    /* The logo is all right angles: keep corners tight. */
+    --radius-sm: calc(var(--radius) * 0.5);
+    --radius-md: calc(var(--radius) * 0.75);
     --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-xl: calc(var(--radius) * 1.5);
+    --radius-2xl: calc(var(--radius) * 2);
+    --radius-3xl: calc(var(--radius) * 3);
+    --radius-4xl: calc(var(--radius) * 4);
+
+    --animate-flash-up: flash-up 900ms ease-out;
+    --animate-flash-down: flash-down 900ms ease-out;
 }
 
+/* Light theme (opt-in). */
 :root {
-    --background: #FAFAF7;
-    --foreground: #14213D;
-    --card: #FFFFFF;
-    --card-foreground: #14213D;
-    --popover: #FFFFFF;
-    --popover-foreground: #14213D;
-    --primary: #14213D;
-    --primary-foreground: #FAFAF7;
-    --secondary: #EEF0F4;
-    --secondary-foreground: #14213D;
-    --muted: #EEF0F4;
-    --muted-foreground: #5B6478;
-    --accent: #EEF0F4;
-    --accent-foreground: #14213D;
-    --destructive: #B4233C;
-    --border: #DCDFE6;
-    --input: #C9CED8;
-    --ring: #14213D;
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-    --gain: #0F7B63;
-    --loss: #B4233C;
-    --slip: #F2B705;
-    --slip-foreground: #14213D;
+    --radius: 0.375rem;
+
+    --background: var(--neutral-50);
+    --foreground: var(--neutral-900);
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --card: #ffffff;
+    --card-foreground: var(--neutral-900);
+    --popover: #ffffff;
+    --popover-foreground: var(--neutral-900);
+    --primary: var(--brand-red);
+    --primary-foreground: #ffffff;
+    --secondary: var(--neutral-150);
+    --secondary-foreground: var(--neutral-900);
+    --muted: var(--neutral-150);
+    --muted-foreground: #5f5a55;
+    --accent: var(--neutral-150);
+    --accent-foreground: var(--neutral-900);
+    --destructive: var(--brand-red);
+    --border: var(--neutral-200);
+    --input: #c9c4be;
+    --ring: var(--brand-red);
+
+    --brand: var(--brand-red);
+    --brand-foreground: #ffffff;
+    --brand-text: var(--brand-red);
+    --gain: var(--green-light-bg);
+    --loss: var(--brand-red);
+    --gain-tint: color-mix(in oklab, var(--green-light-bg) 12%, transparent);
+    --loss-tint: color-mix(in oklab, var(--brand-red) 10%, transparent);
+    --warning: #9a5b00;
+
+    --chart-1: var(--brand-red);
+    --chart-2: var(--green-light-bg);
+    --chart-3: #5f5a55;
+    --chart-4: #a39e98;
+    --chart-5: var(--neutral-900);
+    --sidebar: #ffffff;
+    --sidebar-foreground: var(--neutral-900);
+    --sidebar-primary: var(--brand-red);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: var(--neutral-150);
+    --sidebar-accent-foreground: var(--neutral-900);
+    --sidebar-border: var(--neutral-200);
+    --sidebar-ring: var(--brand-red);
 }
 
+/* Dark theme: the default, matching the club's charcoal. */
 .dark {
-    --background: #0E1626;
-    --foreground: #E8ECF3;
-    --card: #152036;
-    --card-foreground: #E8ECF3;
-    --popover: #152036;
-    --popover-foreground: #E8ECF3;
-    --primary: #E8ECF3;
-    --primary-foreground: #0E1626;
-    --secondary: #1D2A44;
-    --secondary-foreground: #E8ECF3;
-    --muted: #1D2A44;
-    --muted-foreground: #9AA5BA;
-    --accent: #1D2A44;
-    --accent-foreground: #E8ECF3;
-    --destructive: #F0617A;
-    --border: #26344F;
-    --input: #33425F;
-    --ring: #E8ECF3;
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-    --gain: #3CC59F;
-    --loss: #F0617A;
-    --slip: #F2B705;
-    --slip-foreground: #14213D;
+    --background: var(--neutral-900);
+    --foreground: var(--neutral-100);
+    --surface: var(--neutral-850);
+    --surface-raised: var(--neutral-800);
+    --card: var(--neutral-850);
+    --card-foreground: var(--neutral-100);
+    --popover: var(--neutral-800);
+    --popover-foreground: var(--neutral-100);
+    --primary: var(--brand-red);
+    --primary-foreground: #ffffff;
+    --secondary: var(--neutral-800);
+    --secondary-foreground: var(--neutral-100);
+    --muted: var(--neutral-800);
+    --muted-foreground: var(--neutral-400);
+    --accent: var(--neutral-750);
+    --accent-foreground: var(--neutral-100);
+    --destructive: var(--brand-red-lifted);
+    --border: var(--neutral-750);
+    --input: var(--neutral-700);
+    --ring: var(--brand-red-lifted);
+
+    --brand: var(--brand-red);
+    --brand-foreground: #ffffff;
+    /* Brand red fails contrast as text on charcoal; text and thin marks use the lifted red. */
+    --brand-text: var(--brand-red-lifted);
+    --gain: var(--green-dark-bg);
+    --loss: var(--coral-dark-bg);
+    --gain-tint: color-mix(in oklab, var(--green-dark-bg) 14%, transparent);
+    --loss-tint: color-mix(in oklab, var(--coral-dark-bg) 14%, transparent);
+    --warning: #f5b84a;
+
+    --chart-1: var(--brand-red-lifted);
+    --chart-2: var(--green-dark-bg);
+    --chart-3: var(--neutral-400);
+    --chart-4: var(--neutral-500);
+    --chart-5: var(--neutral-100);
+    --sidebar: var(--neutral-950);
+    --sidebar-foreground: var(--neutral-100);
+    --sidebar-primary: var(--brand-red);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: var(--neutral-800);
+    --sidebar-accent-foreground: var(--neutral-100);
+    --sidebar-border: var(--neutral-800);
+    --sidebar-ring: var(--brand-red-lifted);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground antialiased;
     }
-  html {
-    @apply font-sans;
+    html {
+        @apply font-sans;
+        color-scheme: light;
+        /* Sticky headers must never cover the element that has focus. */
+        scroll-padding-top: 5.5rem;
+    }
+    button, a, [role="button"], input, label {
+        /* No double-tap zoom delay on phones. */
+        touch-action: manipulation;
+    }
+    html.dark {
+        color-scheme: dark;
+    }
+    h1, h2, h3 {
+        @apply font-heading;
+        text-wrap: balance;
     }
 }
 
 /* Prices and money always use tabular figures so columns don't jitter on updates. */
 .figures { font-variant-numeric: tabular-nums; }
+
+/* A price change briefly tints its cell: motion that answers a real change, nothing ambient. */
+@keyframes flash-up {
+    from { background-color: var(--gain-tint); }
+    to { background-color: transparent; }
+}
+@keyframes flash-down {
+    from { background-color: var(--loss-tint); }
+    to { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .animate-flash-up, .animate-flash-down { animation: none; }
+}
