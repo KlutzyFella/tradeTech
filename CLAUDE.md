@@ -7,7 +7,7 @@ A browser-based, stocks-only trading competition. Teams trade fictional stocks a
 - `packages/engine`: pure, deterministic market math (curve, news, pressure, valuation, rounding). It has no I/O and is the critical path, so every rule change starts here, test-first.
 - `packages/contracts`: zod schemas shared by the server and the web app (order requests, event envelopes).
 - `apps/server`: Fastify 5, Socket.IO and Prisma 7 (Postgres). Run on Node 24 with native type stripping (`node src/server.ts`), with no build step.
-- `apps/web`: Vite, React 19, Tailwind 4 and shadcn/ui (Base UI, `nova` preset). Phone-first.
+- `apps/web`: Vite, React 19, Tailwind 4 and shadcn/ui (Base UI, `nova` preset). It is device-based: phone layout below 1024 px, trading desk at 1024 px and up, and an extra desk column at 1536 px and up. Branding is per client (EcoTech first). See [docs/branding.md](docs/branding.md).
 
 ## Commands
 
@@ -47,4 +47,5 @@ pnpm --filter @tradetech/web exec playwright test
 
 - Engine and ledger changes are TDD: write the failing test from the blueprint's worked examples and acceptance list (§4.4, §11) first.
 - Use the project skills in `.agents/skills`: `tdd`, `vitest`, `fastify-best-practices`, `websocket-engineer`, `prisma-client-api`, `supabase-postgres-best-practices`, `shadcn`, `frontend-design`, `domain-modeling`, `playwright-best-practices`.
+- UI: use semantic tokens and component variants, never raw colours or client names. Pick layouts by breakpoint with `useMediaQuery`, never by CSS-hiding duplicates. Run Playwright at both sizes; `e2e/a11y.spec.ts` must stay free of serious or critical axe violations.
 - Update `GLOSSARY.md` when a term is resolved, and add an ADR only for hard-to-reverse trade-offs.
