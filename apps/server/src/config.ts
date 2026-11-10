@@ -14,12 +14,28 @@ const configSchema = z
   /** Disable only in tests, which drive ticks directly. */
   TICKER_ENABLED: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
   TICK_INTERVAL_MS: z.coerce.number().int().min(100).max(10_000).default(1000),
-  TRUST_PROXY: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  /** Max Postgres connections per instance. Room writes serialize per room, so this mainly bounds read load. */
+  DATABASE_POOL_MAX: z.coerce.number().int().min(2).max(200).default(10),
+  /** Set when running more than one instance: Socket.IO signals fan out through Redis. */
+  REDIS_URL: z.string().url().optional(),
+  /** Directory of the built web app to serve from the API origin (production image sets this). */
+  WEB_DIST_DIR: z.string().optional(),
+  /** Order previews per second per team (they read the whole book, so keep them bounded). */
+  PREVIEW_RATE_LIMIT_PER_SEC: z.coerce.number().int().positive().default(10),
+  /** Room-wide market refresh signals are coalesced to at most one per this interval. */
+  MARKET_SIGNAL_THROTTLE_MS: z.coerce.number().int().min(0).max(5000).default(500),
+  TRUST_PROXY: z.enum(['true', 'false']).optional(),
   })
   .refine((c) => c.NODE_ENV !== 'production' || c.DATABASE_URL !== undefined, {
     message: 'DATABASE_URL is required in production',
     path: ['DATABASE_URL'],
   })
+  // Behind Railway/Fly this must be true, or every team shares the proxy's IP in rate limits.
+  .refine((c) => c.NODE_ENV !== 'production' || c.TRUST_PROXY !== undefined, {
+    message: 'Set TRUST_PROXY explicitly in production: true behind Railway/Fly/any reverse proxy, false if exposed directly',
+    path: ['TRUST_PROXY'],
+  })
+  .transform(({ TRUST_PROXY, ...rest }) => ({ ...rest, TRUST_PROXY: TRUST_PROXY === 'true' }))
 
 export type AppConfig = z.infer<typeof configSchema>
 

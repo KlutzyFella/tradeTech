@@ -32,7 +32,12 @@ describe('configuration', () => {
     expect(() => loadConfig({ PORT: 'not-a-port' })).toThrow(/PORT/)
   })
 
+  it('refuses to start in production unless TRUST_PROXY is set explicitly', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production', DATABASE_URL: 'postgresql://x@h/db' })).toThrow(/TRUST_PROXY/)
+    expect(loadConfig({ NODE_ENV: 'production', DATABASE_URL: 'postgresql://x@h/db', TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true)
+  })
+
   it('refuses to start in production without a database', () => {
-    expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/DATABASE_URL/)
+    expect(() => loadConfig({ NODE_ENV: 'production', TRUST_PROXY: 'false' })).toThrow(/DATABASE_URL/)
   })
 })

@@ -5,7 +5,7 @@ import { ownedRoom } from '../host/room-service.ts'
 import { resetTeamPassword, setTeamStatus } from '../host/team-admin.ts'
 import { ok, parseInput } from '../http/errors.ts'
 import { hostAuth, requireHost } from '../plugins/auth.ts'
-import { signal } from '../plugins/realtime.ts'
+import { disconnectTeam, signal } from '../plugins/realtime.ts'
 import { buildExport } from '../results/exports.ts'
 import { hostStandings } from '../results/standings.ts'
 
@@ -48,6 +48,7 @@ export const hostResultsRoutes: FastifyPluginAsync = async (app) => {
     const params = parseInput(teamParams, request.params)
     const room = await loadRoom(request, params)
     await resetTeamPassword(app.db, room, BigInt(params.teamId), parseInput(resetPasswordSchema, request.body).password)
+    disconnectTeam(app, params.teamId)
     return ok(null)
   })
 
@@ -56,7 +57,8 @@ export const hostResultsRoutes: FastifyPluginAsync = async (app) => {
     const room = await loadRoom(request, params)
     const input = parseInput(teamStatusSchema, request.body)
     await setTeamStatus(app.db, room, BigInt(params.teamId), input.status, input.reason)
-    signal(app, `team:${params.teamId}`, 'orders:changed', {})
+    if (input.status === 'disqualified') disconnectTeam(app, params.teamId)
+    else signal(app, `team:${params.teamId}`, 'orders:changed', {})
     return ok(null)
   })
 }

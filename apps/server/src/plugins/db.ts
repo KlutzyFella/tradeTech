@@ -11,6 +11,7 @@ declare module 'fastify' {
 
 interface DbPluginOptions {
   connectionString: string
+  poolMax: number
 }
 
 /**
@@ -19,7 +20,7 @@ interface DbPluginOptions {
  * pg_advisory_xact_lock on the room (single writer per room, see ADR 0002).
  */
 const db: FastifyPluginAsync<DbPluginOptions> = async (app, opts) => {
-  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: opts.connectionString }) })
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: opts.connectionString, max: opts.poolMax }) })
   await prisma.$connect()
   app.decorate('db', prisma)
   app.addHook('onClose', async () => {

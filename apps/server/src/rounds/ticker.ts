@@ -108,7 +108,7 @@ const ticker: FastifyPluginAsync<TickerOptions> = async (app, opts) => {
         }
         // Pressure fades continuously; announce it every few beats to bound refetch load.
         if (result.newsPublished > 0 || result.roundEnded || result.liquidatedTeams.length > 0 || (result.pressureMoved && beat % 3 === 0)) {
-          signal(app, `room:${roomId}`, 'market:changed', {})
+          app.signalMarketChanged(roomId)
         }
         if (result.newsPublished > 0) signal(app, `room:${roomId}`, 'news:published', {})
         if (result.roundEnded) signal(app, `room:${roomId}`, 'room:status', {})

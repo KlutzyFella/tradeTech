@@ -2,6 +2,7 @@ import { hostLoginSchema, teamLoginSchema, type Me } from '@tradetech/contracts'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { dummyPasswordHash, verifyPassword } from '../auth/password.ts'
 import { createSession, deleteSession, SESSION_COOKIE } from '../auth/sessions.ts'
+import { disconnectSession } from '../plugins/realtime.ts'
 import { AppError, ok, parseInput } from '../http/errors.ts'
 
 const invalidCredentials = (): AppError => new AppError(401, 'invalid_credentials', 'Those details don’t match. Check and try again.')
@@ -53,7 +54,10 @@ export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (app, opt
   })
 
   app.post('/auth/logout', async (request, reply) => {
-    await deleteSession(app.db, request.cookies[SESSION_COOKIE])
+    const token = request.cookies[SESSION_COOKIE]
+    await deleteSession(app.db, token)
+    // Only this device: a teammate's phone on the same team stays connected.
+    if (token) disconnectSession(app, token)
     reply.clearCookie(SESSION_COOKIE, { path: '/' })
     return ok(null)
   })

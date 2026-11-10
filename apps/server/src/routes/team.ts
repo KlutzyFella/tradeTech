@@ -1,5 +1,5 @@
 import { orderTicketSchema, placeOrderSchema } from '@tradetech/contracts'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { ok, parseInput } from '../http/errors.ts'
 import { signal } from '../plugins/realtime.ts'
 import { requireTeam, teamAuth } from '../plugins/auth.ts'
@@ -9,7 +9,7 @@ import { placeOrder, previewOrder } from '../trading/order-service.ts'
 import { getMarketView, getPortfolioView, listTeamOrders } from '../trading/views.ts'
 
 /** Participant endpoints. Team and room always come from the session, never the request. */
-export const teamRoutes: FastifyPluginAsync = async (app) => {
+export const teamRoutes: FastifyPluginAsync<{ previewRateLimitPerSec: number }> = async (app, opts) => {
   app.addHook('preHandler', requireTeam)
 
   app.get('/market', async (request) => ok(await getMarketView(app.db, teamAuth(request).roomId)))
@@ -22,7 +22,14 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/orders', async (request) => ok(await listTeamOrders(app.db, teamAuth(request).teamId)))
 
-  app.post('/orders/preview', async (request) => {
+  const previewLimit = {
+    max: opts.previewRateLimitPerSec,
+    timeWindow: 1000,
+    hook: 'preHandler' as const,
+    keyGenerator: (request: FastifyRequest) => `preview:${request.auth?.kind === 'team' ? request.auth.teamId : request.ip}`,
+  }
+
+  app.post('/orders/preview', { config: { rateLimit: previewLimit } }, async (request) => {
     const ticket = parseInput(orderTicketSchema, request.body)
     return ok(await previewOrder(app.db, teamAuth(request), ticket))
   })
@@ -34,7 +41,7 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     if (!result.replayed) {
       // Only committed state is announced. Clients refetch on these signals.
       signal(app, `team:${auth.teamId}`, 'orders:changed', { orderId: result.order.id })
-      if (result.order.status === 'filled') signal(app, `room:${auth.roomId}`, 'market:changed', { stockId: result.order.stockId })
+      if (result.order.status === 'filled') app.signalMarketChanged(auth.roomId)
     }
     return ok(result)
   })

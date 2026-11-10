@@ -13,6 +13,8 @@ declare module 'fastify' {
   }
 }
 
+const SESSION_SWEEP_MS = 10 * 60 * 1000
+
 interface AuthPluginOptions {
   secureCookies: boolean
 }
@@ -32,6 +34,15 @@ const auth: FastifyPluginAsync<AuthPluginOptions> = async (app, opts) => {
   app.addHook('onRequest', async (request) => {
     request.auth = await resolveSession(app.db, request.cookies[SESSION_COOKIE])
   })
+
+  // Expired sessions are already refused; this just keeps the table small.
+  const sweep = setInterval(() => {
+    app.db.session
+      .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+      .catch((error: unknown) => app.log.warn({ err: error }, 'session sweep failed'))
+  }, SESSION_SWEEP_MS)
+  sweep.unref()
+  app.addHook('onClose', async () => clearInterval(sweep))
 }
 
 export const authPlugin = fp(auth, { name: 'auth', dependencies: ['db'] })

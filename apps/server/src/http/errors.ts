@@ -43,6 +43,10 @@ export function registerErrorHandler(app: FastifyInstance): void {
     request.log.error({ err: error }, 'unhandled error')
     return reply.status(500).send({ success: false, error: { code: 'internal', message: 'Something went wrong.' } })
   })
+}
+
+/** JSON 404s for API-only deployments (the web-app plugin installs its own fallback instead). */
+export function registerJsonNotFound(app: FastifyInstance): void {
   app.setNotFoundHandler((_request, reply) =>
     reply.status(404).send({ success: false, error: { code: 'not_found', message: 'Route not found' } }),
   )
