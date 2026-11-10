@@ -11,3 +11,4 @@ apps/server/src/generated/
 playwright-report/
 test-results/
 **/e2e/.fixture.json
+railway-ssh*
