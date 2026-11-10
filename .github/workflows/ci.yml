@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: tradetech
+          POSTGRES_PASSWORD: tradetech
+          POSTGRES_DB: tradetech
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tradetech" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tradetech:tradetech@localhost:5432/tradetech
+      TEST_DATABASE_URL: postgresql://tradetech:tradetech@localhost:5432/tradetech_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @tradetech/server db:generate
+      - run: pnpm typecheck
+      - run: pnpm --filter @tradetech/web lint
+      - run: pnpm test
+
+      - name: Migrate and create the E2E host
+        run: |
+          pnpm --filter @tradetech/server db:deploy
+          HOST_PASSWORD=ci-e2e-host-password pnpm --filter @tradetech/server create-host e2e@example.com
+      - run: pnpm --filter @tradetech/web exec playwright install --with-deps chromium
+      - name: E2E (phone viewport)
+        env:
+          E2E_HOST_EMAIL: e2e@example.com
+          E2E_HOST_PASSWORD: ci-e2e-host-password
+        run: pnpm --filter @tradetech/web test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/test-results/
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: tradetech:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

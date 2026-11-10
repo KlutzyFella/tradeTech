@@ -15,5 +15,20 @@ services:
       timeout: 3s
       retries: 10
 
+  # Production image, locally: docker compose --profile app up --build
+  app:
+    profiles: [app]
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://tradetech:tradetech@postgres:5432/tradetech
+      WEB_ORIGIN: http://localhost:8080
+      TRUST_PROXY: "false"
+      PORT: "3000"
+    ports:
+      - "8080:3000"
+
 volumes:
   pgdata:

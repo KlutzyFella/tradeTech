@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs"
 import { request } from "@playwright/test"
 
 export const FIXTURE_PATH = "e2e/.fixture.json"
-const API = "http://localhost:3000/api"
+const API = `${process.env.E2E_BASE_URL ?? "http://localhost:3000"}/api`
 
 /**
  * Creates a fresh practice room through the host API so the test never

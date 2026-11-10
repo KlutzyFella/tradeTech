@@ -6,6 +6,10 @@ A live, host-run stock-trading competition. Teams buy, sell, short and cover a s
 - Vocabulary: [GLOSSARY.md](GLOSSARY.md)
 - Decisions: [docs/adr/](docs/adr/)
 
+## Deploying
+
+See [docs/runbook.md](docs/runbook.md): Railway now, Fly.io-ready, one Docker image. To try the production image locally: `docker compose --profile app up --build`, then open http://localhost:8080.
+
 ## Quick start
 
 Requires Node 24+, pnpm 10 and Docker.
@@ -43,4 +47,4 @@ pnpm --filter @tradetech/web exec playwright test   # phone-viewport E2E (needs 
 | B. Event core | Host and team login, room/stock/team setup API, buy/sell/short/cover with idempotent requests under a per-room lock, cash ledger, practice reset, and participant web app (market, order slip, portfolio, activity). |
 | C. Live event | Host console (setup, phases, rounds, news desk, halts, standings). Server clock on active time, with pressure fading, scheduled news and restart recovery. Mechanical news with fair-publication pause and band halts. Margin liquidation. Team timer and news feed. Not built yet: offset-based socket resume. |
 | D. Competition close | Closing the event freezes one market state and stores every team's final liquidation value and rank (exact paise, ties share a rank, disqualified teams unranked). Host-controlled leaderboard visibility, with each team always seeing its own score. CSV exports of standings, orders, ledger and news. Team password reset and disqualification. |
-| E. Rehearsal & calibration | Not started |
+| E. Rehearsal & calibration | Event-shaped load test (`pnpm --filter @tradetech/server loadtest`). Baseline 20 teams: order p95 113 ms with no errors. Per-room ceiling is about 50 orders/s. Production Docker image serves API and web from one origin, runs migrations at start, and passes E2E. Railway (`railway.json`) and Fly.io (`fly.toml`) configs, CI, and the operator runbook ([docs/runbook.md](docs/runbook.md)). |
