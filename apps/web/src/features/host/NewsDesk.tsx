@@ -43,9 +43,9 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
   const tickers = new Map(room.stocks.map((s) => [s.id, s.ticker]))
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">Write news</h2>
+    <div className="grid items-start gap-6 xl:grid-cols-2">
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+        <h2 className="text-lg font-semibold">Write news</h2>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="news-headline">Headline</Label>
           <Input id="news-headline" value={headline} onChange={(e) => setHeadline(e.target.value)} />
@@ -109,8 +109,8 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
         </div>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">News log</h2>
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+        <h2 className="text-lg font-semibold">News log</h2>
         {news.data?.length === 0 && <p className="text-sm text-muted-foreground">Nothing written yet.</p>}
         <ul className="divide-y divide-border border-y border-border">
           {news.data?.map((item) => (

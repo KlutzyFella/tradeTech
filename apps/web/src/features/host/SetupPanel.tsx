@@ -15,8 +15,8 @@ function suggestedDepth(price: number, teams: number, startingCashPaise: number)
 export function SetupPanel({ room }: { room: HostRoomView }) {
   const locked = room.status !== "draft" && room.status !== "practice"
   return (
-    <div className="flex flex-col gap-8">
-      {locked && <p className="text-sm text-muted-foreground">Teams and stocks are locked once the event is live.</p>}
+    <div className="grid items-start gap-6 xl:grid-cols-2">
+      {locked && <p className="text-sm text-muted-foreground xl:col-span-2">Teams and stocks are locked once the event is live.</p>}
       <Stocks room={room} locked={locked} />
       <Teams room={room} locked={locked} />
     </div>
@@ -43,8 +43,8 @@ function Stocks({ room, locked }: { room: HostRoomView; locked: boolean }) {
     </div>
   )
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">Stocks ({room.stocks.length})</h2>
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+      <h2 className="text-lg font-semibold">Stocks ({room.stocks.length})</h2>
       <ul className="divide-y divide-border border-y border-border text-sm">
         {room.stocks.map((s) => (
           <li key={s.id} className="figures flex justify-between gap-3 py-2">
@@ -115,8 +115,8 @@ function Teams({ room, locked }: { room: HostRoomView; locked: boolean }) {
     .filter((parts) => parts.length >= 3 && parts[0])
     .map(([name, loginName, password]) => ({ name: name!, loginName: loginName!, password: password! }))
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">Teams ({room.teams.length})</h2>
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+      <h2 className="text-lg font-semibold">Teams ({room.teams.length})</h2>
       <ul className="divide-y divide-border border-y border-border text-sm">
         {room.teams.map((t) => (
           <li key={t.id} className="figures flex justify-between gap-3 py-2">

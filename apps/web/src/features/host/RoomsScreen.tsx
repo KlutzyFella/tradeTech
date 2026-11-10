@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 import { hostKeys, useHostRooms } from "@/lib/host-queries"
+import { RoomStatusBadge } from "./RoomStatusBadge"
 
-const STATUS_LABEL = { draft: "Setting up", practice: "Practice", live: "Live", paused: "Paused", closed: "Closed" } as const
 
 export function RoomsScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const rooms = useHostRooms()
@@ -28,9 +28,9 @@ export function RoomsScreen({ onOpen }: { onOpen: (id: string) => void }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Your events</h2>
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+        <h2 className="text-lg font-semibold">Your events</h2>
         {rooms.data?.length === 0 && <p className="text-sm text-muted-foreground">No events yet. Create one below.</p>}
         <ul className="divide-y divide-border border-y border-border">
           {rooms.data?.map((room) => (
@@ -40,14 +40,14 @@ export function RoomsScreen({ onOpen }: { onOpen: (id: string) => void }) {
                   <span className="font-medium">{room.name}</span>
                   <span className="text-sm text-muted-foreground">Room code {room.code}</span>
                 </span>
-                <span className="text-sm text-muted-foreground">{STATUS_LABEL[room.status]}</span>
+                <RoomStatusBadge status={room.status} />
               </button>
             </li>
           ))}
         </ul>
       </section>
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <h2 className="font-semibold">Create an event</h2>
+      <form onSubmit={submit} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
+        <h2 className="text-lg font-semibold">Create an event</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5 sm:col-span-3">
             <Label htmlFor="room-name">Event name</Label>

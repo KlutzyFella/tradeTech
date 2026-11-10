@@ -1,22 +1,27 @@
-import type { Me } from "@tradetech/contracts"
+import type { HostRoomView, Me } from "@tradetech/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { ArrowLeftIcon, LayoutDashboardIcon, LogOutIcon, NewspaperIcon, SettingsIcon, TrophyIcon } from "lucide-react"
+import { useState, type ComponentType } from "react"
+import { BrandMark, ProductLockup } from "@/components/brand/BrandLogo"
+import { SkipLink } from "@/components/skip-link"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { useHostRoom } from "@/lib/host-queries"
 import { cn } from "@/lib/utils"
 import { ControlPanel } from "./ControlPanel"
 import { NewsDesk } from "./NewsDesk"
+import { RoomStatusBadge } from "./RoomStatusBadge"
 import { RoomsScreen } from "./RoomsScreen"
 import { SetupPanel } from "./SetupPanel"
 import { Standings } from "./Standings"
 
 type Tab = "control" | "news" | "standings" | "setup"
-const TABS: readonly { id: Tab; label: string }[] = [
-  { id: "control", label: "Control" },
-  { id: "news", label: "News" },
-  { id: "standings", label: "Standings" },
-  { id: "setup", label: "Setup" },
+const TABS: readonly { id: Tab; label: string; icon: ComponentType<{ className?: string }> }[] = [
+  { id: "control", label: "Control", icon: LayoutDashboardIcon },
+  { id: "news", label: "News", icon: NewspaperIcon },
+  { id: "standings", label: "Standings", icon: TrophyIcon },
+  { id: "setup", label: "Setup", icon: SettingsIcon },
 ]
 
 export function HostApp({ me }: { me: Extract<Me, { kind: "host" }> }) {
@@ -24,24 +29,35 @@ export function HostApp({ me }: { me: Extract<Me, { kind: "host" }> }) {
   const queryClient = useQueryClient()
   const logout = useMutation({ mutationFn: () => api.post("/auth/logout"), onSuccess: () => queryClient.clear() })
   return (
-    <div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 px-4 py-4">
-      <header className="flex items-center justify-between gap-3 border-b border-border pb-3">
-        <div className="min-w-0">
-          <h1 className="font-semibold">TradeTech host console</h1>
-          <p className="truncate text-sm text-muted-foreground">{me.email}</p>
-        </div>
-        <div className="flex gap-2">
+    <div className="flex min-h-svh flex-col">
+      <SkipLink />
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[1920px] items-center gap-4 px-4 py-2.5 lg:px-6">
+          <ProductLockup className="max-sm:hidden" />
+          <BrandMark className="h-6 sm:hidden" />
+          <div className="min-w-0 flex-1 border-l border-border pl-4">
+            <h1 className="truncate text-base font-semibold leading-tight">
+              <span className="max-sm:sr-only">TradeTech </span>
+              <span className="sm:hidden">Host console</span>
+              <span className="max-sm:hidden">host console</span>
+            </h1>
+            <p className="truncate text-xs text-muted-foreground max-sm:hidden">{me.email}</p>
+          </div>
           {roomId && (
             <Button variant="ghost" size="sm" onClick={() => setRoomId(null)}>
-              All events
+              <ArrowLeftIcon data-icon="inline-start" />
+              <span className="max-sm:sr-only">All events</span>
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => logout.mutate()}>
-            Sign out
+          <ThemeToggle />
+          <Button variant="ghost" size="icon" aria-label="Sign out" title="Sign out" onClick={() => logout.mutate()}>
+            <LogOutIcon />
           </Button>
         </div>
       </header>
-      {roomId ? <RoomConsole roomId={roomId} /> : <RoomsScreen onOpen={setRoomId} />}
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1920px] flex-1 px-4 py-6 outline-none lg:px-6">
+        {roomId ? <RoomConsole roomId={roomId} /> : <RoomsScreen onOpen={setRoomId} />}
+      </main>
     </div>
   )
 }
@@ -53,33 +69,58 @@ function RoomConsole({ roomId }: { roomId: string }) {
   if (room.isError) return <p className="text-sm text-destructive">{room.error.message}</p>
   const data = room.data
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">{data.name}</h2>
-        <p className="text-sm text-muted-foreground">
-          Teams join with room code <span className="figures font-medium text-foreground">{data.code}</span>
-        </p>
+    <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] xl:gap-8">
+      <aside className="flex flex-col gap-5 lg:sticky lg:top-[4.75rem] lg:self-start">
+        <EventIdentity room={data} />
+        <nav aria-label="Console sections" className="flex gap-1 overflow-x-auto border-b border-border lg:flex-col lg:border-b-0">
+          {TABS.map((t) => {
+            const Icon = t.icon
+            const active = tab === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                aria-current={active ? "page" : undefined}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "flex shrink-0 items-center gap-2.5 px-3 py-2 font-heading text-sm font-medium outline-none transition-colors focus-visible:bg-muted",
+                  "max-lg:-mb-px max-lg:border-b-2 lg:rounded-md",
+                  active
+                    ? "text-foreground max-lg:border-brand-text lg:bg-muted lg:shadow-[inset_3px_0_0_var(--brand-text)]"
+                    : "text-muted-foreground hover:text-foreground max-lg:border-transparent lg:hover:bg-muted/60",
+                )}
+              >
+                <Icon className="size-4 max-lg:hidden" />
+                {t.label}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
+      <section aria-label={TABS.find((t) => t.id === tab)?.label} className="min-w-0">
+        {tab === "control" && <ControlPanel room={data} fetchedAt={room.dataUpdatedAt} />}
+        {tab === "news" && <NewsDesk room={data} />}
+        {tab === "standings" && <Standings roomId={roomId} startingCashPaise={data.startingCashPaise} />}
+        {tab === "setup" && <SetupPanel room={data} />}
+      </section>
+    </div>
+  )
+}
+
+function EventIdentity({ room }: { room: HostRoomView }) {
+  return (
+    <div className="flex flex-col gap-2 lg:rounded-lg lg:border lg:border-border lg:bg-surface lg:p-4">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-xl font-semibold leading-tight tracking-tight">{room.name}</h2>
+        <RoomStatusBadge status={room.status} />
       </div>
-      <nav aria-label="Console sections" className="flex gap-1 border-b border-border">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            aria-current={tab === t.id ? "page" : undefined}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium outline-none focus-visible:bg-muted",
-              tab === t.id ? "border-foreground text-foreground" : "border-transparent text-muted-foreground",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
-      {tab === "control" && <ControlPanel room={data} fetchedAt={room.dataUpdatedAt} />}
-      {tab === "news" && <NewsDesk room={data} />}
-      {tab === "standings" && <Standings roomId={roomId} startingCashPaise={data.startingCashPaise} />}
-      {tab === "setup" && <SetupPanel room={data} />}
+      <p className="text-sm text-muted-foreground">
+        Teams join with room code{" "}
+        <span className="figures rounded-sm bg-muted px-1.5 py-0.5 font-heading font-semibold tracking-[0.15em] text-foreground">{room.code}</span>
+      </p>
+      <p className="figures text-xs text-muted-foreground">
+        {room.teams.length} teams, {room.stocks.length} stocks
+      </p>
     </div>
   )
 }
