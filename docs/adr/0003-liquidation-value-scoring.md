@@ -1,3 +1,7 @@
+---
+status: accepted (confirmed by the organiser on 2026-11-09 as the published scoring rule)
+---
+
 # Rank teams by liquidation value, not mark-to-mid equity
 
 The score is cash minus the cost of closing every position against the same frozen dealer curve. Each team is valued independently, and valuation never mutates shared state. Mark-to-mid equity is easier to explain, but a team can inflate it by buying its own stock. In the blueprint's worked example, a 1,000-share buy shows about ₹503 of fake profit. Host-anchor settlement was deferred because it changes the nature of the contest.
