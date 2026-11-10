@@ -4,12 +4,15 @@ How to deploy TradeTech and run a live event. The baseline is 20 teams for one h
 
 ## Deploy on Railway
 
-1. Create a project with a **PostgreSQL** database and a service from this repo. Railway reads `railway.json` and builds the root `Dockerfile`.
+1. Create a project with a **PostgreSQL** database (`railway add --database postgres`) and a service from this repo with **Root Directory `/`**.
+   Service settings live in [`.railway/railway.ts`](../.railway/railway.ts) (Railway infrastructure-as-code, scoped to this service only):
+   the Dockerfile build, entrypoint start command, `/health` check and watch paths. Preview with `railway config plan`, apply with `railway config apply`.
+   Do not use the dashboard's auto-detected monorepo services (separate `web`/`server` with `pnpm` commands): the server image serves the web app itself.
 2. Set these service variables:
 
    | Variable | Value |
    |---|---|
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (Railway reference) |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (Railway reference: private network, direct connection) |
    | `WEB_ORIGIN` | `https://<your-domain>`: the exact public URL teams open |
    | `TRUST_PROXY` | `true`. Railway terminates TLS in front of the app. **Required:** the server refuses to start in production without it, because getting it wrong makes every team share one IP in the login limiter. |
 
@@ -20,7 +23,8 @@ How to deploy TradeTech and run a live event. The baseline is 20 teams for one h
    pnpm --filter @tradetech/server create-host organiser@example.com
    ```
    The password is printed once. Never use the development host `host-password-1` in production.
-5. Leave sleeping off (`sleepApplication: false`) and keep one replica. A live round must never scale to zero.
+5. Leave sleeping off and keep one replica. A live round must never scale to zero.
+6. Make the service domain's **target port** match `PORT` (3000): `railway domain update <domain> --port 3000`.
 
 ## Moving to Fly.io
 
