@@ -28,10 +28,25 @@ export default async function globalSetup(): Promise<void> {
     depth: 524_603,
     borrowPool: 100_000,
   })
-  await call(`/host/rooms/${room.id}/teams`, { teams: [{ name: "Bulls", loginName: "bulls", password: "bulls-password" }] })
+  // One team per Playwright project, so phone and desktop runs never share positions.
+  await call(`/host/rooms/${room.id}/teams`, {
+    teams: [
+      { name: "Bulls", loginName: "bulls", password: "bulls-password" },
+      { name: "Bears", loginName: "bears", password: "bears-password" },
+    ],
+  })
   await call(`/host/rooms/${room.id}/status`, { status: "practice" })
   await call(`/host/rooms/${room.id}/rounds`, { durationMinutes: 30 })
   await call(`/host/rooms/${room.id}/rounds/current/start`, {})
   await ctx.dispose()
-  writeFileSync(FIXTURE_PATH, JSON.stringify({ code, loginName: "bulls", password: "bulls-password" }))
+  writeFileSync(
+    FIXTURE_PATH,
+    JSON.stringify({
+      code,
+      teams: {
+        phone: { name: "Bulls", loginName: "bulls", password: "bulls-password" },
+        desktop: { name: "Bears", loginName: "bears", password: "bears-password" },
+      },
+    }),
+  )
 }

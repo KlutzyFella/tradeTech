@@ -1,12 +1,14 @@
-import { expect, request, test } from "@playwright/test"
+import { expect, request, test, type APIRequestContext } from "@playwright/test"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
 const HOST_EMAIL = process.env.E2E_HOST_EMAIL ?? "host@tradetech.local"
 const HOST_PASSWORD = process.env.E2E_HOST_PASSWORD ?? "host-password-1"
 
-/** Builds a practice event with one stock and one team through the API. */
-async function practiceEvent() {
-  const ctx = await request.newContext()
+/**
+ * Signs the page in as host (one login per test: the page's API context shares
+ * its cookies) and builds a practice event with one stock and one team.
+ */
+async function practiceEvent(ctx: APIRequestContext) {
   const call = async (path: string, data: unknown = {}) => {
     const res = await ctx.post(`${BASE}/api${path}`, { data })
     if (!res.ok()) throw new Error(`${path}: ${res.status()} ${await res.text()}`)
@@ -18,12 +20,11 @@ async function practiceEvent() {
   await call(`/host/rooms/${room.id}/stocks`, { ticker: "OILCO", name: "Meridian Oil", sector: "Energy", openingPrice: 100, depth: 524_603, borrowPool: 1000 })
   await call(`/host/rooms/${room.id}/teams`, { teams: [{ name: "Bulls", loginName: "bulls", password: "original-pass" }] })
   await call(`/host/rooms/${room.id}/status`, { status: "practice" })
-  await ctx.dispose()
   return { code, name: `Admin ${code}` }
 }
 
 test("the host resets a password, disqualifies and reinstates a team, and halts a stock from the console", async ({ page }) => {
-  const event = await practiceEvent()
+  const event = await practiceEvent(page.request)
   const prompts: string[] = []
   page.on("dialog", (dialog) => {
     // Answer prompts in order; plain confirms are accepted.
@@ -31,10 +32,6 @@ test("the host resets a password, disqualifies and reinstates a team, and halts 
   })
 
   await page.goto("/")
-  await page.getByRole("button", { name: /Host sign-in/ }).click()
-  await page.getByLabel("Email").fill(HOST_EMAIL)
-  await page.getByLabel("Password").fill(HOST_PASSWORD)
-  await page.getByRole("button", { name: "Sign in" }).click()
   await page.getByRole("button", { name: new RegExp(event.name) }).click()
 
   await page.getByRole("button", { name: "Setup" }).click()
@@ -63,13 +60,9 @@ test("the host resets a password, disqualifies and reinstates a team, and halts 
 })
 
 test("a too-short password is explained, not reported as a generic error", async ({ page }) => {
-  const event = await practiceEvent()
+  const event = await practiceEvent(page.request)
   page.on("dialog", (dialog) => void (dialog.type() === "prompt" ? dialog.accept("short") : dialog.accept()))
   await page.goto("/")
-  await page.getByRole("button", { name: /Host sign-in/ }).click()
-  await page.getByLabel("Email").fill(HOST_EMAIL)
-  await page.getByLabel("Password").fill(HOST_PASSWORD)
-  await page.getByRole("button", { name: "Sign in" }).click()
   await page.getByRole("button", { name: new RegExp(event.name) }).click()
   await page.getByRole("button", { name: "Setup" }).click()
   await page.getByRole("button", { name: "Reset password" }).click()

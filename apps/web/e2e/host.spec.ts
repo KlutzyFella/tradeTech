@@ -47,7 +47,7 @@ test("a host sets up and runs a round; a team sees the clock and the news move p
   await team.getByLabel("Password").fill("bulls-password")
   await team.getByRole("button", { name: "Sign in" }).click()
   await expect(team.getByLabel("Time left in round")).toHaveText(/^(19|20):\d\d$/)
-  await expect(team.getByRole("button", { name: /OILCO/ })).toContainText("₹100.00")
+  await expect(team.getByRole("button", { name: /^OILCO/ })).toContainText("₹100.00")
 
   await host.getByRole("button", { name: "News" }).click()
   await host.getByLabel("Headline").fill("Refinery outage cuts supply")
@@ -56,8 +56,10 @@ test("a host sets up and runs a round; a team sees the clock and the news move p
   await host.getByRole("button", { name: "Publish now" }).first().click()
 
   await expect(team.getByText("Breaking news — check the News tab.")).toBeVisible()
-  await expect(team.getByRole("button", { name: /OILCO/ })).toContainText("₹108.00")
-  await team.getByRole("button", { name: /^News/ }).click()
+  await expect(team.getByRole("button", { name: /^OILCO/ })).toContainText("₹108.00")
+  // Phones have a News tab; the laptop desk shows news in its side column.
+  const newsTab = team.getByRole("button", { name: /^News/ })
+  if (await newsTab.isVisible()) await newsTab.click()
   await expect(team.getByRole("heading", { name: "Refinery outage cuts supply" })).toBeVisible()
   await expect(team.getByText("8%")).toHaveCount(0)
 

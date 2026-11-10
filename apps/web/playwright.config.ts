@@ -18,12 +18,18 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "phone", use: { ...devices["Pixel 7"] } }],
+  projects: [
+    { name: "phone", use: { ...devices["Pixel 7"] } },
+    // The laptop trading desk: market table, docked ticket and news rail.
+    { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 } } },
+  ],
   webServer: externalBaseUrl
     ? []
     : [
         {
           command: "pnpm --filter @tradetech/server dev",
+          // Only servers Playwright starts itself: many sign-ins per minute across two projects.
+          env: { LOGIN_RATE_LIMIT_MAX: "200" },
           url: "http://localhost:3000/health",
           reuseExistingServer: true,
           cwd: "../..",
