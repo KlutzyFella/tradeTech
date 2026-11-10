@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "accessibility": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/accessibility/SKILL.md",
+      "computedHash": "612f913bcb03f0787b103c848cd7664b676a9aaf31f25d3270cc69cf5caaab95"
+    },
     "better-auth-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
@@ -12,6 +18,12 @@
       "sourceType": "github",
       "skillPath": "skills/engineering/code-review/SKILL.md",
       "computedHash": "c2745e2be960b82b9fddd82cf45265f42431e7b045c403f297b25f0f311e9210"
+    },
+    "design-system": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/design-system/SKILL.md",
+      "computedHash": "407141febc8fae02d061c909843d4082693174829240e44e620e3add26a9a735"
     },
     "domain-modeling": {
       "source": "mattpocock/skills",
@@ -30,6 +42,12 @@
       "sourceType": "github",
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
+    },
+    "kpi-dashboard-design": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/business-analytics/skills/kpi-dashboard-design/SKILL.md",
+      "computedHash": "d886fe70e98d7555ece81ae8c53579f0fd4a0042c646cf88a1054651ce14fb72"
     },
     "multi-stage-dockerfile": {
       "source": "github/awesome-copilot",
@@ -66,6 +84,12 @@
       "sourceType": "github",
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
       "computedHash": "e14e276241805c97dbcfe40dcbea1a3035269cc7293cac4b1832dda41a835e60"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
+      "computedHash": "4e5bfe5af9b5da504752432dc45ed605af350cf1489a58419afad4123a514f89"
     },
     "tdd": {
       "source": "mattpocock/skills",
