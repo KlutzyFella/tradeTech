@@ -14,9 +14,15 @@ interface MarketScreenProps {
   layout: "table" | "list"
 }
 
-/** Desk columns: stock, (sector from xl), price, change, position, state. */
-const TABLE_COLUMNS =
-  "grid-cols-[minmax(9rem,1.6fr)_7rem_6rem_minmax(6.5rem,1fr)_5.5rem] xl:grid-cols-[minmax(10rem,1.6fr)_minmax(6rem,1fr)_7rem_6rem_minmax(7rem,1fr)_5.5rem]"
+/** Desk columns respond to the table's own width (container queries), not the window's. */
+const TABLE_COLUMNS = cn(
+  // Narrow (e.g. beside the news column): stock (+ position underneath), price, change, status.
+  "grid-cols-[minmax(7.5rem,1.6fr)_6.5rem_5.5rem_5rem]",
+  // From 36rem of table width: a position column.
+  "@xl:grid-cols-[minmax(9rem,1.6fr)_7rem_6rem_minmax(6.5rem,1fr)_5.5rem]",
+  // From 48rem: sector too.
+  "@3xl:grid-cols-[minmax(10rem,1.6fr)_minmax(6rem,1fr)_7rem_6rem_minmax(7rem,1fr)_5.5rem]",
+)
 
 export function MarketScreen({ onSelect, selectedId, layout }: MarketScreenProps) {
   const market = useMarket()
@@ -32,13 +38,13 @@ export function MarketScreen({ onSelect, selectedId, layout }: MarketScreenProps
 
   if (layout === "table") {
     return (
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="@container overflow-hidden rounded-lg border border-border bg-surface">
         <div aria-hidden className={cn("grid gap-4 border-b border-border px-4 py-2.5 text-xs text-muted-foreground", TABLE_COLUMNS)}>
           <span>Stock</span>
-          <span className="max-xl:hidden">Sector</span>
+          <span className="hidden @3xl:block">Sector</span>
           <span className="text-right">Price</span>
           <span className="text-right">Today</span>
-          <span className="text-right">Your position</span>
+          <span className="hidden text-right @xl:block">Your position</span>
           <span className="text-right">Status</span>
         </div>
         <ul className="divide-y divide-border">
@@ -123,15 +129,18 @@ function TableRow({ stock, held, selected, onSelect }: RowProps & { selected: bo
           {stock.ticker}
         </span>
         <span className="truncate text-sm text-muted-foreground">{stock.name}</span>
+        {position && (
+          <span className={cn("figures text-xs @xl:hidden", held > 0 ? "text-gain" : "text-loss")}>{position}</span>
+        )}
       </span>
-      <span className="truncate text-sm text-muted-foreground max-xl:hidden">{stock.sector}</span>
+      <span className="hidden truncate text-sm text-muted-foreground @3xl:block">{stock.sector}</span>
       <span className="text-right">
         <Price value={stock.mid} />
       </span>
       <span className="text-right text-sm">
         <PriceChange value={stock.change} />
       </span>
-      <span className={cn("figures text-right text-sm", held > 0 && "text-gain", held < 0 && "text-loss", !position && "text-muted-foreground")}>
+      <span className={cn("figures hidden text-right text-sm @xl:block", held > 0 && "text-gain", held < 0 && "text-loss", !position && "text-muted-foreground")}>
         {position ?? "—"}
       </span>
       <span className="flex justify-end">

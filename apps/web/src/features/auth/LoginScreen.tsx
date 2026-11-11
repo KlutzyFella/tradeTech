@@ -66,7 +66,7 @@ export function LoginScreen() {
                 onClick={() => setMode(m)}
                 className={cn(
                   "h-9 rounded-md text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                  mode === m ? "bg-surface-raised text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  mode === m ? "bg-background text-foreground shadow-sm ring-1 ring-foreground/25" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {m === "team" ? "Team sign-in" : "Host sign-in"}

@@ -66,10 +66,12 @@ Use **exactly** the email of the host account you already created. The seed atta
 ### Part 3: News (host → phones)
 
 - [ ] **Host:** News → headline "Analysts debate airline fuel costs" → **Information only** → **Publish now**.
-  **Phones:** a "Breaking news" toast and an unread badge on the **News** tab. Prices don't jump.
-- [ ] **Host:** News → headline "Refinery outage cuts supply" → **Moves prices** → OILCO `8`, AIRCO `-6` → **Publish now**.
-  **Phones:** the toast appears, OILCO jumps about 8% and AIRCO falls about 6%. The two stocks show **News pause** for about 3 seconds, so nobody can trade on the stale price.
-  *Talking point:* the percentages are private. Teams see the headline, never the numbers. Open the News tab on a phone to show this.
+  **Phones and laptops:** a red **Breaking** strip under the header shows the actual headline, with **SKYLINE/AIRCO** chips at live prices, and the **News** tab gets an unread count. Prices don't jump.
+- [ ] **Host:** News → headline "Meridian Oil refinery outage cuts supply" → **Moves prices** → OILCO `8`, AIRCO `-6` → **Publish now**.
+  **Teams:** the breaking strip names the story and shows **OILCO** and **AIRCO** chips. OILCO jumps about 8% and AIRCO falls about 6%, and both show **News pause** for about 3 seconds, so nobody can trade on the stale price.
+- [ ] **Phone A:** tap **OILCO** in the strip. The order ticket opens on OILCO straight from the story.
+- [ ] **Laptop as a team:** open the **News** tab. Stories show as a large reader with **New** markers, "You hold …" flags and live stock chips, while the order ticket stays docked on the right. Under "Where news shows on your desk", try **Beside market** (a news column next to the prices) and **Tab only**.
+  *Talking point:* the percentages are private. Teams see the headline and the market's reaction, never the numbers the host typed.
 - [ ] **Host:** a price-moving news item, SOLAR `30` → **Publish now**.
   SOLAR jumps beyond its ±20% band and halts automatically. The phones show **Halted**, and the host's Control tab shows "Halted: band".
 - [ ] **Host:** Control → SOLAR → **Reopen**, then confirm re-centring the band. Trading resumes from the new price.

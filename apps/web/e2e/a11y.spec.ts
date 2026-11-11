@@ -37,6 +37,18 @@ test("the team trading screen is accessible with the ticket open", async ({ page
   await expectAccessible(page)
 })
 
+test("the News reader is accessible", async ({ page }, testInfo) => {
+  const team = fixture.teams[testInfo.project.name] ?? fixture.teams.phone!
+  const login = await page.request.post(`${BASE}/api/auth/team/login`, {
+    data: { roomCode: fixture.code, loginName: team.loginName, password: team.password },
+  })
+  expect(login.ok()).toBe(true)
+  await page.goto("/")
+  await page.getByRole("button", { name: /^News/ }).click()
+  await expect(page.getByRole("heading", { name: "News", exact: true, level: 2 })).toBeVisible()
+  await expectAccessible(page)
+})
+
 test("the host console is accessible", async ({ page }) => {
   const login = await page.request.post(`${BASE}/api/auth/host/login`, { data: { email: HOST_EMAIL, password: HOST_PASSWORD } })
   expect(login.ok()).toBe(true)

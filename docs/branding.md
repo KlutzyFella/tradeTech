@@ -37,3 +37,11 @@ Components use semantic tokens and variants only, never raw colours. Gains and l
 Layout switches use `useMediaQuery` (`DESKTOP_QUERY`, `WIDE_DESK_QUERY`), so each element renders exactly once, not once per breakpoint behind CSS. The browser tests run every flow at both phone (Pixel 7) and 1920×1080 sizes, and include an axe accessibility audit (WCAG 2.2 AA).
 
 Fonts: **Jost** for headings (echoing the geometric wordmark) and **IBM Plex Sans** for text and tabular figures. Dark theme is the default; the light theme is one click away in the header.
+
+## News for participants
+
+- **Breaking strip:** a strip in the sticky header carries each new headline, with chips for the stocks it names and Read/Dismiss. Only stories that arrive while you're signed in trigger it.
+- **News tab:** on every device, a large reader with **New** markers, an "Earlier" divider, relative times, and a flag on stories about stocks you hold. Tapping a stock chip loads it into the order ticket.
+- **Desk placement**, remembered per device: **Side panel** (under the ticket, collapsible), **Beside market** (from 1280 px; the market table adapts with container queries), or **Tab only**.
+- **Read state** is stored per team on the device. Stories count as read after 1.5 s in the reader, or 4 s in a side placement, while the window is focused.
+- **Stock mentions** come only from the public headline and body (`src/lib/mentions.ts`), never from the host's private impacts.

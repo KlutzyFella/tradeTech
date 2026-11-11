@@ -50,18 +50,28 @@ test("a host sets up and runs a round; a team sees the clock and the news move p
   await expect(team.getByRole("button", { name: /^OILCO/ })).toContainText("₹100.00")
 
   await host.getByRole("button", { name: "News" }).click()
-  await host.getByLabel("Headline").fill("Refinery outage cuts supply")
+  await host.getByLabel("Headline").fill("Meridian Oil refinery outage cuts supply")
+  await host.getByLabel("Details for teams").fill("A fire takes a large share of capacity offline for weeks.")
   await host.getByRole("radio", { name: /Moves prices/ }).click()
   await host.getByLabel("OILCO move in percent").fill("8")
   await host.getByRole("button", { name: "Publish now" }).first().click()
 
-  await expect(team.getByText("Breaking news — check the News tab.")).toBeVisible()
+  // The breaking strip carries the real headline and the stock it names.
+  const strip = team.getByRole("status", { name: "Breaking news" })
+  await expect(strip).toContainText("Meridian Oil refinery outage cuts supply")
   await expect(team.getByRole("button", { name: /^OILCO/ })).toContainText("₹108.00")
-  // Phones have a News tab; the laptop desk shows news in its side column.
-  const newsTab = team.getByRole("button", { name: /^News/ })
-  if (await newsTab.isVisible()) await newsTab.click()
-  await expect(team.getByRole("heading", { name: "Refinery outage cuts supply" })).toBeVisible()
-  await expect(team.getByText("8%")).toHaveCount(0)
+
+  await team.getByRole("button", { name: /^News/ }).click()
+  const story = team.getByRole("article", { name: "Meridian Oil refinery outage cuts supply" })
+  await expect(story).toBeVisible()
+  // Teams see the host's words, never the private move they typed.
+  await expect(story.getByText("A fire takes a large share of capacity offline for weeks.", { exact: true })).toBeVisible()
+  await expect(story.getByText(/OILCO move|8 ?%$/)).toHaveCount(0)
+
+  // Trade straight from the story: the chip loads OILCO into the ticket.
+  await story.getByRole("button", { name: /^Trade OILCO/ }).click()
+  await expect(team.getByRole("heading", { name: "OILCO", exact: true })).toBeVisible()
+  await team.keyboard.press("Escape")
 
   await host.getByRole("button", { name: "Control" }).click()
   await host.getByRole("button", { name: "Pause" }).click()

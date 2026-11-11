@@ -37,8 +37,8 @@ export function useLiveUpdates(enabled: boolean): { connected: boolean } {
       void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio })
     })
     socket.on("news:published", () => {
+      // The breaking-news strip announces it, with the headline and stocks named.
       void queryClient.invalidateQueries({ queryKey: queryKeys.news })
-      toast.info("Breaking news — check the News tab.")
     })
     socket.on("orders:changed", (payload: { liquidated?: boolean }) => {
       if (payload?.liquidated) toast.warning("Your positions were closed because your account fell below the margin requirement.")
