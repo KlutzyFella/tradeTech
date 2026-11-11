@@ -2,6 +2,7 @@ import { decayPressure } from '@tradetech/engine'
 import type { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 import type { PrismaClient } from '../generated/prisma/client.ts'
+import { samplePricesIfDue } from '../market/price-history.ts'
 import { publishNewsItem } from '../news/news-service.ts'
 import { signal } from '../plugins/realtime.ts'
 import { enforceMaintenance } from '../risk/liquidation.ts'
@@ -50,6 +51,7 @@ export async function tickRoom(db: PrismaClient, roomId: bigint, now: Date): Pro
     for (const item of due) await publishNewsItem(tx, item, now)
 
     const liquidatedTeams = await enforceMaintenance(tx, roomId, now)
+    await samplePricesIfDue(tx, roomId, now)
 
     const roundEnded = elapsed >= round.durationMs
     await tx.round.update({ where: { id: round.id }, data: { activeElapsedMs: elapsed, lastTickAt: now } })

@@ -8,6 +8,7 @@ import { hostAuth, requireHost } from '../plugins/auth.ts'
 import { disconnectTeam, signal } from '../plugins/realtime.ts'
 import { buildExport } from '../results/exports.ts'
 import { hostStandings } from '../results/standings.ts'
+import { projectorView } from '../host/projector.ts'
 
 const roomParams = z.object({ roomId: idSchema })
 const teamParams = roomParams.extend({ teamId: idSchema })
@@ -22,6 +23,11 @@ export const hostResultsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/host/rooms/:roomId/leaderboard', async (request) => {
     const room = await loadRoom(request, parseInput(roomParams, request.params))
     return ok(await hostStandings(app.db, room.id))
+  })
+
+  app.get('/host/rooms/:roomId/projector', async (request) => {
+    const room = await loadRoom(request, parseInput(roomParams, request.params))
+    return ok(await projectorView(app.db, room.id))
   })
 
   app.post('/host/rooms/:roomId/leaderboard/visibility', async (request) => {

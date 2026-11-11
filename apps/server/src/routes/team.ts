@@ -1,6 +1,8 @@
-import { orderTicketSchema, placeOrderSchema } from '@tradetech/contracts'
+import { idSchema, orderTicketSchema, placeOrderSchema } from '@tradetech/contracts'
+import { z } from 'zod'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
-import { ok, parseInput } from '../http/errors.ts'
+import { notFound, ok, parseInput } from '../http/errors.ts'
+import { stockHistory } from '../market/price-history.ts'
 import { signal } from '../plugins/realtime.ts'
 import { requireTeam, teamAuth } from '../plugins/auth.ts'
 import { listPublicNews } from '../news/news-service.ts'
@@ -17,6 +19,15 @@ export const teamRoutes: FastifyPluginAsync<{ previewRateLimitPerSec: number }> 
   app.get('/portfolio', async (request) => ok(await getPortfolioView(app.db, teamAuth(request))))
 
   app.get('/standings', async (request) => ok(await teamStandings(app.db, teamAuth(request))))
+
+  app.get('/stocks/:stockId/history', async (request) => {
+    const { roomId } = teamAuth(request)
+    const { stockId } = parseInput(z.object({ stockId: idSchema }), request.params)
+    // Scoped to the team's own room: another room's stock is simply not found.
+    const stock = await app.db.stock.findFirst({ where: { id: BigInt(stockId), roomId }, select: { id: true } })
+    if (!stock) throw notFound('Stock')
+    return ok({ stockId, points: await stockHistory(app.db, roomId, stock.id) })
+  })
 
   app.get('/news', async (request) => ok(await listPublicNews(app.db, teamAuth(request).roomId)))
 

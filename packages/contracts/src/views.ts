@@ -182,3 +182,31 @@ export interface HostRoomSummary {
   readonly name: string
   readonly status: RoomStatus
 }
+
+export interface PricePoint {
+  /** ISO timestamp. */
+  readonly t: string
+  readonly mid: number
+}
+
+export interface StockHistoryView {
+  readonly stockId: string
+  /** Oldest first, downsampled to a chart-friendly size. */
+  readonly points: readonly PricePoint[]
+}
+
+/** Public-safe snapshot for the venue's big screen: never impacts, drafts or team ids. */
+export interface ProjectorView {
+  readonly name: string
+  readonly code: string
+  readonly status: RoomStatus
+  readonly round: RoundView | null
+  readonly serverTime: string
+  readonly teamCount: number
+  readonly stocks: readonly (StockView & { readonly spark: readonly number[] })[]
+  readonly news: readonly NewsView[]
+  readonly leaderboard: {
+    readonly final: boolean
+    readonly entries: readonly { readonly name: string; readonly rank: number; readonly liquidationValuePaise: number }[]
+  } | null
+}

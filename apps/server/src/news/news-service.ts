@@ -5,6 +5,7 @@ import type { NewsItem, PrismaClient, Room } from '../generated/prisma/client.ts
 import { AppError, notFound } from '../http/errors.ts'
 import { appendRoomEvent, withRoomLock, type Tx } from '../rooms/room-lock.ts'
 import { parseRoomRules } from '../rooms/rules.ts'
+import { recordPrices } from '../market/price-history.ts'
 import { unfinishedRound } from '../rounds/clock.ts'
 
 type NewsInput = z.output<typeof createNewsSchema>
@@ -23,6 +24,7 @@ export async function publishNewsItem(tx: Tx, item: NewsItem, now: Date): Promis
     const room = await tx.room.findUniqueOrThrow({ where: { id: item.roomId } })
     const { newsPauseMs } = parseRoomRules(room.rules)
     const reopensAt = newsPauseMs > 0 ? new Date(now.getTime() + newsPauseMs) : null
+    const moved: bigint[] = []
     for (const [stockId, shock] of Object.entries(impactsOf(item))) {
       const stock = await tx.stock.findFirst({ where: { id: BigInt(stockId), roomId: item.roomId } })
       if (!stock) continue
@@ -33,7 +35,9 @@ export async function publishNewsItem(tx: Tx, item: NewsItem, now: Date): Promis
         where: { id: stock.id },
         data: { anchor, reopensAt, ...(outside ? { halted: true, haltReason: 'band' } : {}) },
       })
+      moved.push(stock.id)
     }
+    if (moved.length > 0) await recordPrices(tx, item.roomId, now, moved)
   }
   await tx.newsItem.update({ where: { id: item.id }, data: { status: 'published', publishedAt: now } })
   await appendRoomEvent(tx, item.roomId, {

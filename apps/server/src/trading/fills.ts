@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { OrderIntent } from '@tradetech/contracts'
 import { applyFillToPosition, pressureAfter } from '@tradetech/engine'
 import type { Order, Stock } from '../generated/prisma/client.ts'
+import { recordPrices } from '../market/price-history.ts'
 import { appendRoomEvent, type Tx } from '../rooms/room-lock.ts'
 
 export interface FillEffects {
@@ -38,6 +39,8 @@ export async function applyFillEffects(
     },
   })
   await tx.team.update({ where: { id: ref.teamId }, data: { cashPaise: { increment: fill.cashDeltaPaise } } })
+  // The chart shows the move the moment it happens, not at the next sample.
+  await recordPrices(tx, ref.roomId, new Date(), [stock.id])
 
   const key = { teamId_stockId: { teamId: ref.teamId, stockId: stock.id } }
   const existing = await tx.position.findUnique({ where: key })

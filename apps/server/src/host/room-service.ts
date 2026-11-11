@@ -173,6 +173,7 @@ export async function resetPractice(db: PrismaClient, room: Room): Promise<void>
 async function wipePracticeState(tx: Tx, roomId: bigint): Promise<void> {
   const room = await tx.room.findUniqueOrThrow({ where: { id: roomId } })
   await tx.position.deleteMany({ where: { roomId } })
+  await tx.pricePoint.deleteMany({ where: { roomId } })
   const stocks = await tx.stock.findMany({ where: { roomId } })
   for (const stock of stocks) {
     await tx.stock.update({

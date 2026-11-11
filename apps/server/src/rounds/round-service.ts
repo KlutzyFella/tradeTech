@@ -2,6 +2,7 @@ import type { RoundAction } from '@tradetech/contracts'
 import type { PrismaClient, Room, Round } from '../generated/prisma/client.ts'
 import { AppError } from '../http/errors.ts'
 import { appendRoomEvent, withRoomLock, type Tx } from '../rooms/room-lock.ts'
+import { recordPrices } from '../market/price-history.ts'
 import { activeElapsedMs, latestRound, unfinishedRound } from './clock.ts'
 
 const MS_PER_MINUTE = 60_000
@@ -47,6 +48,8 @@ export async function transitionRound(tx: Tx, round: Round, to: Round['status'],
       ...(to === 'ended' ? { cutoffAt: now } : {}),
     },
   })
+  // A round's chart starts at its opening prices.
+  if (to === 'running' && !round.startedAt) await recordPrices(tx, round.roomId, now)
   await appendRoomEvent(tx, round.roomId, {
     type: 'round_status',
     payload: { sequence: round.sequence, from: round.status, to },
