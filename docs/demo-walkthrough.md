@@ -65,8 +65,8 @@ Use **exactly** the email of the host account you already created. The seed atta
 
 ### Part 3: News (host → phones)
 
-- [ ] **Host:** News → headline "Analysts debate airline fuel costs" → **Information only** → **Publish now**.
-  **Phones and laptops:** a red **Breaking** strip under the header shows the actual headline, with **SKYLINE/AIRCO** chips at live prices, and the **News** tab gets an unread count. Prices don't jump.
+- [ ] **Host:** News → headline "Analysts debate Skyline Airways fuel costs" → **Information only** → **Publish now**.
+  **Phones and laptops:** a red **Breaking** strip under the header shows the actual headline, with an **AIRCO** chip at its live price, because the story names Skyline Airways, and the **News** tab gets an unread count. Prices don't jump.
 - [ ] **Host:** News → headline "Meridian Oil refinery outage cuts supply" → **Moves prices** → OILCO `8`, AIRCO `-6` → **Publish now**.
   **Teams:** the breaking strip names the story and shows **OILCO** and **AIRCO** chips. OILCO jumps about 8% and AIRCO falls about 6%, and both show **News pause** for about 3 seconds, so nobody can trade on the stale price.
 - [ ] **Phone A:** tap **OILCO** in the strip. The order ticket opens on OILCO straight from the story.
