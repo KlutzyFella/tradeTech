@@ -10,6 +10,7 @@ export const queryKeys = {
   orders: ["orders"] as const,
   news: ["news"] as const,
   standings: ["standings"] as const,
+  history: ["history"] as const,
 }
 
 /**
@@ -34,6 +35,7 @@ export function useLiveUpdates(enabled: boolean): { connected: boolean } {
     socket.on("disconnect", () => setConnected(false))
     socket.on("market:changed", () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.market })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.history })
       void queryClient.invalidateQueries({ queryKey: queryKeys.portfolio })
     })
     socket.on("news:published", () => {

@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api, NetworkError } from "@/lib/api"
+import { PriceChart } from "@/components/charts/PriceChart"
 import { PriceChange } from "@/components/price-change"
+import { useNewsContext } from "@/features/news/news-context"
 import { formatPaise, formatPrice, formatShares } from "@/lib/format"
 import { queryKeys } from "@/lib/live"
-import { usePortfolio } from "@/lib/queries"
+import { usePortfolio, useStockHistory } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 
 const INTENTS: readonly { intent: OrderIntent; label: string; past: string; side: "gain" | "loss" }[] = [
@@ -128,6 +130,8 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
           </div>
         </header>
 
+        <StockChart stock={stock} />
+
         {stock.profile && <p className="text-sm leading-relaxed text-muted-foreground">{stock.profile}</p>}
         {stock.halted && (
           <p role="status" className="rounded-md bg-loss-tint px-3 py-2 text-sm font-medium text-loss">
@@ -238,6 +242,24 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
       </div>
     </div>
   )
+}
+
+/** This round's price line, with news markers (brand colour when the story names this stock). */
+function StockChart({ stock }: { stock: StockView }) {
+  const history = useStockHistory(stock.id)
+  const { items, mentionsOf } = useNewsContext()
+  const markers = useMemo(
+    () => items.map((n) => ({ t: n.publishedAt, label: n.headline, emphasis: mentionsOf(n).some((s) => s.id === stock.id) })),
+    [items, mentionsOf, stock.id],
+  )
+  // The live quote may be newer than the last sample: end the line at the price shown above it.
+  const points = useMemo(() => {
+    const base = history.data?.points ?? []
+    if (base.length === 0) return base
+    const last = base.at(-1)!
+    return last.mid === stock.mid ? base : [...base, { t: new Date().toISOString(), mid: stock.mid }]
+  }, [history.data, stock.mid])
+  return <PriceChart points={points} markers={markers} title={`${stock.ticker} price this round`} height={150} />
 }
 
 function Estimate({ preview, pending, onUseMax }: { preview: OrderPreview | undefined; pending: boolean; onUseMax: (n: number) => void }) {

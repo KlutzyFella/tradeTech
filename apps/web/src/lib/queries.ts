@@ -1,4 +1,4 @@
-import type { MarketView, Me, NewsView, OrderView, PortfolioView, TeamStandingsView } from "@tradetech/contracts"
+import type { MarketView, Me, NewsView, OrderView, PortfolioView, StockHistoryView, TeamStandingsView } from "@tradetech/contracts"
 import { useQuery } from "@tanstack/react-query"
 import { api, ApiError } from "./api"
 import { queryKeys } from "./live"
@@ -29,3 +29,11 @@ export const useStandings = () =>
   useQuery({ queryKey: queryKeys.standings, queryFn: () => api.get<TeamStandingsView>("/standings"), refetchInterval: 10_000 })
 
 export const useOrders = () => useQuery({ queryKey: queryKeys.orders, queryFn: () => api.get<OrderView[]>("/orders") })
+
+/** A stock's price history for charts. Refreshes on market changes and every 10 s (ticker samples). */
+export const useStockHistory = (stockId: string) =>
+  useQuery({
+    queryKey: [...queryKeys.history, stockId],
+    queryFn: () => api.get<StockHistoryView>(`/stocks/${stockId}/history`),
+    refetchInterval: 10_000,
+  })
