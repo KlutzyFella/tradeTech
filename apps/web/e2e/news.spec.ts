@@ -1,8 +1,7 @@
 import { expect, request, test, type APIRequestContext, type Page } from "@playwright/test"
+import { HOST_STATE_PATH } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
-const HOST_EMAIL = process.env.E2E_HOST_EMAIL ?? "host@tradetech.local"
-const HOST_PASSWORD = process.env.E2E_HOST_PASSWORD ?? "host-password-1"
 
 interface Room {
   host: APIRequestContext
@@ -11,19 +10,18 @@ interface Room {
   stockIds: Record<string, string>
 }
 
-// One host sign-in per project: the server limits sign-ins per account per minute.
+// Reuses the host session from global setup; tests share one room.
 test.describe.configure({ mode: "serial" })
 let room: Room
 let teamNumber = 0
 
 test.beforeAll(async () => {
-  const host = await request.newContext()
+  const host = await request.newContext({ storageState: HOST_STATE_PATH })
   const call = async (path: string, data: unknown = {}) => {
     const res = await host.post(`${BASE}/api${path}`, { data })
     if (!res.ok()) throw new Error(`${path}: ${res.status()} ${await res.text()}`)
     return (await res.json()).data
   }
-  await call("/auth/host/login", { email: HOST_EMAIL, password: HOST_PASSWORD })
   const code = `N${Date.now().toString(36).slice(-7).toUpperCase()}`
   const created = await call("/host/rooms", { name: `News ${code}`, code, startingCashRupees: 1_000_000, rules: { newsPauseMs: 0 } })
   const base = `/host/rooms/${created.id}`

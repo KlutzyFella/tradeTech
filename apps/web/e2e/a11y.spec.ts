@@ -2,10 +2,9 @@ import AxeBuilder from "@axe-core/playwright"
 import { readFileSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { FIXTURE_PATH } from "./global-setup"
+import { signInAsHost } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
-const HOST_EMAIL = process.env.E2E_HOST_EMAIL ?? "host@tradetech.local"
-const HOST_PASSWORD = process.env.E2E_HOST_PASSWORD ?? "host-password-1"
 const fixture = JSON.parse(readFileSync(FIXTURE_PATH, "utf8")) as {
   code: string
   teams: Record<string, { loginName: string; password: string }>
@@ -50,9 +49,17 @@ test("the News reader is accessible", async ({ page }, testInfo) => {
 })
 
 test("the host console is accessible", async ({ page }) => {
-  const login = await page.request.post(`${BASE}/api/auth/host/login`, { data: { email: HOST_EMAIL, password: HOST_PASSWORD } })
-  expect(login.ok()).toBe(true)
+  await signInAsHost(page.context())
   await page.goto("/")
   await expect(page.getByRole("heading", { name: "TradeTech host console" })).toBeVisible()
+  await expectAccessible(page)
+})
+
+test("the projector view is accessible", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Big-screen view")
+  await signInAsHost(page.context())
+  const rooms = (await (await page.request.get(`${BASE}/api/host/rooms`)).json()).data as { id: string }[]
+  await page.goto(`/projector/${rooms[0]!.id}`)
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
   await expectAccessible(page)
 })

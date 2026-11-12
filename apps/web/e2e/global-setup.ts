@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs"
 import { request } from "@playwright/test"
+import { HOST_STATE_PATH } from "./host-session"
 
 export const FIXTURE_PATH = "e2e/.fixture.json"
 const API = `${process.env.E2E_BASE_URL ?? "http://localhost:3000"}/api`
@@ -18,6 +19,8 @@ export default async function globalSetup(): Promise<void> {
     return (await res.json()).data
   }
   await call("/auth/host/login", { email, password })
+  // The one host sign-in for the whole run; specs reuse this session.
+  await ctx.storageState({ path: HOST_STATE_PATH })
   const code = `E2E${Date.now().toString(36).slice(-6).toUpperCase()}`
   const room = await call("/host/rooms", { name: "E2E Cup", code, startingCashRupees: 1_000_000 })
   await call(`/host/rooms/${room.id}/stocks`, {

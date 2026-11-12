@@ -1,12 +1,11 @@
 import { expect, request, test, type APIRequestContext } from "@playwright/test"
+import { signInAsHost } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
-const HOST_EMAIL = process.env.E2E_HOST_EMAIL ?? "host@tradetech.local"
-const HOST_PASSWORD = process.env.E2E_HOST_PASSWORD ?? "host-password-1"
 
 /**
- * Signs the page in as host (one login per test: the page's API context shares
- * its cookies) and builds a practice event with one stock and one team.
+ * Builds a practice event with one stock and one team, through an API context
+ * that already carries the host session.
  */
 async function practiceEvent(ctx: APIRequestContext) {
   const call = async (path: string, data: unknown = {}) => {
@@ -14,7 +13,6 @@ async function practiceEvent(ctx: APIRequestContext) {
     if (!res.ok()) throw new Error(`${path}: ${res.status()} ${await res.text()}`)
     return (await res.json()).data
   }
-  await call("/auth/host/login", { email: HOST_EMAIL, password: HOST_PASSWORD })
   const code = `A${Date.now().toString(36).slice(-7).toUpperCase()}`
   const room = await call("/host/rooms", { name: `Admin ${code}`, code, startingCashRupees: 1_000_000 })
   await call(`/host/rooms/${room.id}/stocks`, { ticker: "OILCO", name: "Meridian Oil", sector: "Energy", openingPrice: 100, depth: 524_603, borrowPool: 1000 })
@@ -24,6 +22,7 @@ async function practiceEvent(ctx: APIRequestContext) {
 }
 
 test("the host resets a password, disqualifies and reinstates a team, and halts a stock from the console", async ({ page }) => {
+  await signInAsHost(page.context())
   const event = await practiceEvent(page.request)
   const prompts: string[] = []
   page.on("dialog", (dialog) => {
@@ -60,6 +59,7 @@ test("the host resets a password, disqualifies and reinstates a team, and halts 
 })
 
 test("a too-short password is explained, not reported as a generic error", async ({ page }) => {
+  await signInAsHost(page.context())
   const event = await practiceEvent(page.request)
   page.on("dialog", (dialog) => void (dialog.type() === "prompt" ? dialog.accept("short") : dialog.accept()))
   await page.goto("/")
