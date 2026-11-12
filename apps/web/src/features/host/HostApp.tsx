@@ -1,6 +1,6 @@
 import type { HostRoomView, Me } from "@tradetech/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeftIcon, LayoutDashboardIcon, LogOutIcon, NewspaperIcon, SettingsIcon, TrophyIcon } from "lucide-react"
+import { ArrowLeftIcon, LayoutDashboardIcon, LogOutIcon, MonitorIcon, NewspaperIcon, SettingsIcon, TrophyIcon } from "lucide-react"
 import { useState, type ComponentType } from "react"
 import { BrandMark, ProductLockup } from "@/components/brand/BrandLogo"
 import { SkipLink } from "@/components/skip-link"
@@ -121,6 +121,15 @@ function EventIdentity({ room }: { room: HostRoomView }) {
       <p className="figures text-xs text-muted-foreground">
         {room.teams.length} teams, {room.stocks.length} stocks
       </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-1 self-start"
+        onClick={() => window.open(`/projector/${room.id}`, "_blank", "noopener")}
+      >
+        <MonitorIcon data-icon="inline-start" />
+        Open projector view
+      </Button>
     </div>
   )
 }
