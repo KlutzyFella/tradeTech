@@ -65,6 +65,14 @@ BASE_URL=https://<domain> HOST_EMAIL=... HOST_PASSWORD=... pnpm --filter @tradet
 
 Prepare 6–10 news items per scored hour in advance (blueprint §5). Schedule them with the news desk's "At round minute" field, and keep a few drafts for unscheduled moments.
 
+## The venue screen
+
+In the host console, open the event and click **Open projector view** in the sidebar. A new window opens at `/projector/<event id>`. Drag it to the projector or second display and click **Full screen**.
+
+- It shows the event name and status, a giant round clock, a market board with mini price charts, the latest headline (it flashes once when news breaks), and how to join: the site address and room code.
+- The leaderboard appears only after **Standings → Show leaderboard to teams**. After **Close the event**, it shows the final results.
+- It is built from a public-only snapshot: draft news, the private price moves and team logins never reach it. It updates every 2 seconds and needs the host signed in on that browser.
+
 ## During the event
 
 - **Server restarted mid-round:** the round comes back **paused** (downtime never counts as active time). Check the market on Control, then press **Resume**.

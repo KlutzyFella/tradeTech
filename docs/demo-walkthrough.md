@@ -47,6 +47,9 @@ Use **exactly** the email of the host account you already created. The seed atta
 - [ ] **Setup tab:** the 10 stocks show their opening prices and liquidity depth, and the 6 teams show "signs in as …" and ₹10,00,000 cash each.
   *Talking point:* hosts add companies and bulk-import teams here. Depth is suggested automatically from the number of teams.
 - [ ] **Control tab:** "Practice — results don't count and can be reset."
+- [ ] **Projector:** in the event sidebar, click **Open projector view**, drag the window to the venue screen and click **Full screen**.
+  It shows the event name, a giant round clock, a market board with mini price charts, the latest headline and how to join (site + room code). Leave it up for the rest of the demo: every step below also shows there.
+  *Talking point:* the big screen only ever shows public information. Draft news and the host's private price moves can't appear on it.
 
 ### Part 2: Practice round and trading (host + phones)
 
@@ -58,6 +61,7 @@ Use **exactly** the email of the host account you already created. The seed atta
   A toast says "Bought 2,000 SOLAR at ₹… average", and the order appears under **Portfolio** and **Activity**.
 - [ ] **Phone B:** SOLAR's price has ticked up slightly.
   *Talking point:* trades move prices. Bigger orders move them more, and every team sees it live.
+- [ ] **Phone B:** tap **SOLAR**. The ticket opens with this round's **price chart**: the line steps up where Phone A bought. Drag along the chart (or tab to it and use the arrow keys) to read the price at any moment. News appears as markers on the timeline, in red when the story names this stock.
 - [ ] **Phone A:** try SOLAR, Shares `500000`.
   The slip explains the order is too big or unaffordable *before* sending it, disables the button, and offers **Use N**. Nothing is placed.
 - [ ] **Phone B:** **Short** 1,000 **AIRCO**, then **Cover** 1,000.
@@ -86,7 +90,7 @@ Use **exactly** the email of the host account you already created. The seed atta
 - [ ] **Host:** Standings shows a live ranking by **liquidation value**: what each team would have after closing everything at the dealer's prices.
   *Talking point:* teams can't pump their own score by buying their own stock, because the score uses closing prices including costs.
 - [ ] **Phones:** Portfolio says "Your host is keeping the leaderboard hidden for now."
-- [ ] **Host:** **Show leaderboard to teams**. The phones now show their rank and the table.
+- [ ] **Host:** **Show leaderboard to teams**. The phones now show their rank and the table, and the **projector** swaps "Leaderboard hidden" for the top ten.
 
 ### Part 6: Going live and closing
 
