@@ -1,28 +1,41 @@
 import type { HostRoomView, Me } from "@tradetech/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeftIcon, BookmarkPlusIcon, LayoutDashboardIcon, LogOutIcon, MonitorIcon, NewspaperIcon, SettingsIcon, TrophyIcon } from "lucide-react"
+import {
+  ActivityIcon,
+  ArrowLeftIcon,
+  BookmarkPlusIcon,
+  LayoutDashboardIcon,
+  LogOutIcon,
+  MonitorIcon,
+  NewspaperIcon,
+  SettingsIcon,
+  TrophyIcon,
+} from "lucide-react"
 import { useState, type ComponentType } from "react"
 import { BrandMark, ProductLockup } from "@/components/brand/BrandLogo"
 import { SkipLink } from "@/components/skip-link"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
-import { useHostRoom, useTemplateAction } from "@/lib/host-queries"
+import { useHostMonitor, useHostRoom, useTemplateAction } from "@/lib/host-queries"
 import { cn } from "@/lib/utils"
 import { ControlPanel } from "./ControlPanel"
+import { marginAlertCount, MonitorPanel } from "./MonitorPanel"
 import { NewsDesk } from "./NewsDesk"
 import { RoomStatusBadge } from "./RoomStatusBadge"
 import { RoomsScreen } from "./RoomsScreen"
 import { SetupPanel } from "./SetupPanel"
 import { Standings } from "./Standings"
 
-type Tab = "control" | "news" | "standings" | "setup"
+type Tab = "control" | "monitor" | "news" | "standings" | "setup"
 const TABS: readonly {
   id: Tab
   label: string
   icon: ComponentType<{ className?: string }>
 }[] = [
   { id: "control", label: "Control", icon: LayoutDashboardIcon },
+  { id: "monitor", label: "Monitor", icon: ActivityIcon },
   { id: "news", label: "News", icon: NewspaperIcon },
   { id: "standings", label: "Standings", icon: TrophyIcon },
   { id: "setup", label: "Setup", icon: SettingsIcon },
@@ -72,6 +85,7 @@ export function HostApp({ me }: { me: Extract<Me, { kind: "host" }> }) {
 function RoomConsole({ roomId }: { roomId: string }) {
   const [tab, setTab] = useState<Tab>("control")
   const room = useHostRoom(roomId)
+  const alerts = marginAlertCount(useHostMonitor(roomId).data)
   if (room.isPending) return <p className="text-sm text-muted-foreground">Loading event…</p>
   if (room.isError) return <p className="text-sm text-destructive">{room.error.message}</p>
   const data = room.data
@@ -99,6 +113,11 @@ function RoomConsole({ roomId }: { roomId: string }) {
               >
                 <Icon className="size-4 max-lg:hidden" />
                 {t.label}
+                {t.id === "monitor" && alerts > 0 && (
+                  <Badge variant="warning" className="figures ml-auto" aria-label={`${alerts} margin ${alerts === 1 ? "alert" : "alerts"}`}>
+                    {alerts}
+                  </Badge>
+                )}
               </button>
             )
           })}
@@ -106,6 +125,7 @@ function RoomConsole({ roomId }: { roomId: string }) {
       </aside>
       <section aria-label={TABS.find((t) => t.id === tab)?.label} className="min-w-0">
         {tab === "control" && <ControlPanel room={data} fetchedAt={room.dataUpdatedAt} />}
+        {tab === "monitor" && <MonitorPanel roomId={roomId} />}
         {tab === "news" && <NewsDesk room={data} />}
         {tab === "standings" && <Standings roomId={roomId} startingCashPaise={data.startingCashPaise} />}
         {tab === "setup" && <SetupPanel room={data} />}

@@ -77,6 +77,15 @@ test("the host's setup tab and stock editor are accessible", async ({ page }) =>
   await expectAccessible(page)
 })
 
+test("the host's live monitor is accessible", async ({ page }) => {
+  await signInAsHost(page.context())
+  await page.goto("/")
+  await page.getByRole("button", { name: new RegExp(`Room code ${fixture.code}`) }).click()
+  await page.getByRole("button", { name: "Monitor" }).click()
+  await expect(page.getByRole("heading", { name: "Latest orders" })).toBeVisible()
+  await expectAccessible(page)
+})
+
 test("the projector view is accessible", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Big-screen view")
   await signInAsHost(page.context())

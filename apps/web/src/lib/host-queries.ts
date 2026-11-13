@@ -1,4 +1,4 @@
-import type { HostNewsView, HostRoomSummary, HostRoomView, HostTemplateSummary } from "@tradetech/contracts"
+import type { HostMonitorView, HostNewsView, HostRoomSummary, HostRoomView, HostTemplateSummary } from "@tradetech/contracts"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { api } from "./api"
@@ -12,6 +12,7 @@ export const hostKeys = {
   news: (id: string) => ["host", "news", id] as const,
   board: (id: string) => ["host", "board", id] as const,
   templates: ["host", "templates"] as const,
+  monitor: (id: string) => ["host", "monitor", id] as const,
 }
 
 export const useHostRooms = () =>
@@ -31,6 +32,14 @@ export const useHostNews = (roomId: string) =>
   useQuery({
     queryKey: hostKeys.news(roomId),
     queryFn: () => api.get<HostNewsView[]>(`/host/rooms/${roomId}/news`),
+    refetchInterval: HOST_POLL_MS,
+  })
+
+/** Shared by the Monitor tab and the nav's alert count: one poll, two readers. */
+export const useHostMonitor = (roomId: string) =>
+  useQuery({
+    queryKey: hostKeys.monitor(roomId),
+    queryFn: () => api.get<HostMonitorView>(`/host/rooms/${roomId}/monitor`),
     refetchInterval: HOST_POLL_MS,
   })
 
