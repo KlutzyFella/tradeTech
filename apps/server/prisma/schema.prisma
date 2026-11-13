@@ -278,6 +278,8 @@ model Order {
   @@unique([roomId, id])
   @@unique([roomId, acceptSeq])
   @@index([stockId])
+  /// Host monitor: "orders in the last minute" per room.
+  @@index([roomId, acceptedAt])
   @@map("orders")
 }
 

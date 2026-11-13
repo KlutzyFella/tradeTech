@@ -3,10 +3,11 @@ import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { ownedRoom } from '../host/room-service.ts'
 import { setHalt } from '../host/live-service.ts'
+import { monitorView } from '../host/monitor.ts'
 import { ok, parseInput } from '../http/errors.ts'
 import { createNews, listHostNews, publishNow } from '../news/news-service.ts'
 import { hostAuth, requireHost } from '../plugins/auth.ts'
-import { signal } from '../plugins/realtime.ts'
+import { countTeamConnections, signal } from '../plugins/realtime.ts'
 import { latestRound, toRoundView } from '../rounds/clock.ts'
 import { createRound, roundAction } from '../rounds/round-service.ts'
 
@@ -23,6 +24,11 @@ export const hostLiveRoutes: FastifyPluginAsync = async (app) => {
   const changed = (roomId: bigint, ...events: string[]) => {
     for (const event of events) signal(app, `room:${roomId}`, event, {})
   }
+
+  app.get('/host/rooms/:roomId/monitor', async (request) => {
+    const room = await loadRoom(request, parseInput(roomParams, request.params))
+    return ok(await monitorView(app.db, room, (roomId) => countTeamConnections(app, roomId)))
+  })
 
   app.get('/host/rooms/:roomId/round', async (request) => {
     const room = await loadRoom(request, parseInput(roomParams, request.params))

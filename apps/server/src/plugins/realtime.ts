@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
 import { Server } from 'socket.io'
-import { hashToken, resolveSession, SESSION_COOKIE, type AuthContext } from '../auth/sessions.ts'
+import { hashToken, resolveSession, SESSION_COOKIE } from '../auth/sessions.ts'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -88,8 +88,10 @@ const realtime: FastifyPluginAsync<RealtimeOptions> = async (app, opts) => {
       const token = cookies[SESSION_COOKIE]
       const auth = await resolveSession(app.db, token)
       if (!auth || !token) return next(new Error('unauthenticated'))
-      socket.data.auth = auth
-      socket.data.sessionChannel = `session:${hashToken(token)}`
+      // Plain strings only: socket data is serialized when instances share sockets through Redis.
+      const session = `session:${hashToken(token)}`
+      socket.data.channels = auth.kind === 'team' ? [`room:${auth.roomId}`, `team:${auth.teamId}`, session] : []
+      socket.data.sessionChannel = session
       return next()
     } catch (error: unknown) {
       app.log.error({ err: error }, 'socket auth failed')
@@ -98,10 +100,8 @@ const realtime: FastifyPluginAsync<RealtimeOptions> = async (app, opts) => {
   })
 
   io.on('connection', (socket) => {
-    const auth = socket.data.auth as AuthContext
-    if (auth.kind === 'team') {
-      void socket.join([`room:${auth.roomId}`, `team:${auth.teamId}`, socket.data.sessionChannel as string])
-    }
+    const channels = socket.data.channels as string[]
+    if (channels.length > 0) void socket.join(channels)
   })
 
   app.addHook('onClose', async () => {
@@ -126,6 +126,17 @@ export function disconnectSession(app: FastifyInstance, token: string): void {
 }
 
 /** Drops all of a team's live connections (disqualification, password reset). */
+/** Live team connections in a room (tabs or devices), keyed by team id; spans instances via the adapter. */
+export async function countTeamConnections(app: FastifyInstance, roomId: bigint | string): Promise<Map<string, number>> {
+  const counts = new Map<string, number>()
+  for (const socket of await app.io.in(`room:${roomId}`).fetchSockets()) {
+    for (const channel of socket.rooms) {
+      if (channel.startsWith('team:')) counts.set(channel.slice(5), (counts.get(channel.slice(5)) ?? 0) + 1)
+    }
+  }
+  return counts
+}
+
 export function disconnectTeam(app: FastifyInstance, teamId: bigint | string): void {
   try {
     app.io.in(`team:${teamId}`).disconnectSockets(true)

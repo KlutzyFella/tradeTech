@@ -26,6 +26,35 @@ export function maintenanceStatus(
   return { ok: true }
 }
 
+/**
+ * How far a team is from forced liquidation: actual ÷ required for whichever
+ * maintenance requirement is tighter (1 = the threshold, below 1 = failing).
+ * Null when nothing is at risk: no exposure, no shorts and positive equity.
+ */
+export function maintenanceHeadroom(metrics: PortfolioMetrics, rules: Partial<MaintenanceRules> = {}): number | null {
+  const { maintenanceCollateralRatio, maintenanceEquityRatio } = { ...DEFAULT_MAINTENANCE_RULES, ...rules }
+  if (metrics.equity <= 0) return 0
+  const ratios: number[] = []
+  if (metrics.shortNotional > 0) {
+    ratios.push((metrics.availableCash + metrics.restrictedCash) / (maintenanceCollateralRatio * metrics.shortNotional))
+  }
+  if (metrics.grossExposure > 0 && maintenanceEquityRatio > 0) {
+    ratios.push(metrics.equity / (maintenanceEquityRatio * metrics.grossExposure))
+  }
+  return ratios.length === 0 ? null : Math.min(...ratios)
+}
+
+/** Within 10% of a forced close: shorts opened at the 1.5× initial collateral start at 1.15. */
+export const MARGIN_WATCH_HEADROOM = 1.1
+
+export type MarginLevel = 'none' | 'ok' | 'watch' | 'breach'
+
+export function marginLevel(headroom: number | null, watchBelow: number = MARGIN_WATCH_HEADROOM): MarginLevel {
+  if (headroom === null) return 'none'
+  if (headroom < 1) return 'breach'
+  return headroom < watchBelow ? 'watch' : 'ok'
+}
+
 export interface ClosingFill {
   readonly signedQuantity: number
   readonly cashDeltaPaise: bigint

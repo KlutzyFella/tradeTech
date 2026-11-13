@@ -222,3 +222,46 @@ export interface HostTemplateSummary {
   readonly newsCount: number
   readonly updatedAt: string
 }
+
+export type MarginLevel = 'none' | 'ok' | 'watch' | 'breach'
+
+/** One team's live state for the host monitor. */
+export interface MonitorTeam {
+  readonly teamId: string
+  readonly name: string
+  readonly status: 'active' | 'frozen' | 'disqualified'
+  /** Open browser tabs or devices connected right now. */
+  readonly connections: number
+  readonly lastOrderAt: string | null
+  /** Orders accepted in the last minute (filled or rejected). */
+  readonly ordersLastMinute: number
+  readonly liquidationValuePaise: number
+  readonly grossExposurePaise: number
+  readonly shortNotionalPaise: number
+  /** Actual ÷ required for the tighter maintenance rule; below 1 means forced liquidation. */
+  readonly marginHeadroom: number | null
+  readonly marginLevel: MarginLevel
+}
+
+export interface MonitorTrade {
+  readonly id: string
+  readonly teamName: string
+  readonly ticker: string
+  readonly intent: OrderIntent
+  readonly quantity: number
+  readonly status: 'filled' | 'rejected'
+  readonly averagePrice: number | null
+  readonly valuePaise: number | null
+  readonly rejectMessage: string | null
+  /** A margin close-out made by the server, not the team. */
+  readonly forced: boolean
+  readonly acceptedAt: string
+}
+
+/** Host-only live picture of the event: who's connected, who's trading, who's near liquidation. */
+export interface HostMonitorView {
+  readonly serverTime: string
+  readonly teams: readonly MonitorTeam[]
+  readonly trades: readonly MonitorTrade[]
+  readonly lastMinute: { readonly filled: number; readonly rejected: number; readonly valuePaise: number }
+}
