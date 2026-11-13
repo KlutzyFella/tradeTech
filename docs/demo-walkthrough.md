@@ -58,6 +58,8 @@ Use **exactly** the email of the host account you already created. The seed atta
 
 - [ ] **Host:** Control → **New practice round** (20 minutes) → **Start round**.
   **Phones:** a countdown appears in the header within a second or two.
+- [ ] **Phones:** on first sign-in, each phone opens **How it works**: the scoring rule first, then costs, shorting, limits, close-outs and news, all with this event's numbers. Tap **Got it**. The **?** in the header reopens it.
+  *Talking point:* teams see exactly how they're scored before any trade counts.
 - [ ] **Phone A:** Market → tap **SOLAR** → **Buy**, Shares `2000`.
   The slip shows the **estimated average price, "You pay", and the price after the order** before anything is sent.
 - [ ] **Phone A:** tap **Buy 2,000 SOLAR**.
@@ -88,6 +90,9 @@ Use **exactly** the email of the host account you already created. The seed atta
 - [ ] **Host:** **Pause**. The phones show "Paused" instead of the clock, and orders are refused.
 - [ ] **Host:** **Resume**. The countdown continues from where it stopped, because paused time never counts.
 
+- [ ] **Host:** open **Monitor**. Phones A and B show as **Online**, Phone A's SOLAR buy is at the top of **Latest orders**, and the tiles show orders and value traded in the last minute.
+  *Talking point:* if a team gets close to a forced close-out, it moves to the top of the table and the Monitor tab shows an alert count from any tab.
+
 ### Part 5: Standings and fairness
 
 - [ ] **Host:** Standings shows a live ranking by **liquidation value**: what each team would have after closing everything at the dealer's prices.
@@ -116,9 +121,9 @@ Use **exactly** the email of the host account you already created. The seed atta
 
 These checks run on every code change and were measured on the production build:
 
-- **72 rule tests** on the market maths. They include the worked example from the design document, to the paisa: a ₹1,00,652.43 purchase closing at ₹1,08,378.99.
-- **63 server tests** against a real database. They cover duplicate-order protection, two simultaneous orders never overspending one team's cash, short and cover reconciliation, news, halts, margin liquidation, the round clock, restarts, final scoring, and CSV exports.
-- **3 end-to-end tests** on a phone-sized browser, covering the whole event lifecycle (repeated against production in the check above).
+- **77 rule tests** on the market maths. They include the worked example from the design document, to the paisa: a ₹1,00,652.43 purchase closing at ₹1,08,378.99.
+- **94 server tests** against a real database. They cover duplicate-order protection, two simultaneous orders never overspending one team's cash, short and cover reconciliation, news, halts, margin liquidation, the round clock, restarts, final scoring, and CSV exports.
+- **41 end-to-end browser tests** on a phone and a 1080p laptop. They cover the whole event lifecycle, editing and templates, the live monitor (including a real margin close-out), the rules explainer, and accessibility audits of every main screen.
 - **Load test** with every team ordering every second, the maximum the rules allow:
   - 20 teams: 95% of orders confirmed within 113 ms, zero errors.
   - 60 teams: within 455 ms, zero errors.

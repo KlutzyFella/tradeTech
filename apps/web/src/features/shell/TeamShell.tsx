@@ -14,6 +14,7 @@ import { NewsProvider, useNewsContext } from "@/features/news/news-context"
 import { BreakingNewsStrip, NewsColumn, NewsPanel, NewsReader } from "@/features/news/NewsViews"
 import { OrderSlip } from "@/features/order/OrderSlip"
 import { DeskSummary, PortfolioScreen } from "@/features/portfolio/PortfolioScreen"
+import { HowItWorks } from "@/features/rules/HowItWorks"
 import { api } from "@/lib/api"
 import { formatClock, useCountdown } from "@/lib/countdown"
 import { useLiveUpdates } from "@/lib/live"
@@ -95,9 +96,7 @@ function TeamLayout({ me, tab, setTab, selected, setSelected }: TeamLayoutProps)
       banner={<BreakingNewsStrip />}
     />
   )
-  const marketTable = (
-    <MarketScreen onSelect={setSelected} selectedId={liveSelected?.id ?? null} layout={desktop ? "table" : "list"} />
-  )
+  const marketTable = <MarketScreen onSelect={setSelected} selectedId={liveSelected?.id ?? null} layout={desktop ? "table" : "list"} />
   const section = (
     <>
       {tab === "market" &&
@@ -124,10 +123,13 @@ function TeamLayout({ me, tab, setTab, selected, setSelected }: TeamLayoutProps)
         aria-current={active ? "page" : undefined}
         onClick={() => setTab(t.id)}
         className={cn(
-          "relative inline-flex items-center justify-center gap-1.5 font-heading text-sm font-medium outline-none transition-colors",
+          "relative inline-flex items-center justify-center gap-1.5 font-heading text-sm font-medium transition-colors outline-none",
           variant === "desk"
-            ? cn("-mb-px border-b-2 px-4 py-2.5 focus-visible:bg-muted", active ? "border-brand-text text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")
-            : cn("h-14 focus-visible:bg-muted", active ? "text-foreground" : "text-muted-foreground"),
+            ? cn(
+                "-mb-px border-b-2 px-4 py-2.5 focus-visible:bg-muted",
+                active ? "border-brand-text text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              )
+            : cn("h-14 focus-visible:bg-muted", active ? "text-foreground" : "text-muted-foreground")
         )}
       >
         {variant === "phone" && active && <span aria-hidden className="absolute inset-x-6 top-0 h-0.5 bg-brand-text" />}
@@ -151,7 +153,7 @@ function TeamLayout({ me, tab, setTab, selected, setSelected }: TeamLayoutProps)
         <div
           className={cn(
             "mx-auto grid w-full max-w-[1920px] flex-1 gap-5 px-5 py-5 2xl:gap-6 2xl:px-8",
-            deskColumn ? "grid-cols-[288px_minmax(0,1fr)_400px]" : "grid-cols-[minmax(0,1fr)_380px]",
+            deskColumn ? "grid-cols-[288px_minmax(0,1fr)_400px]" : "grid-cols-[minmax(0,1fr)_380px]"
           )}
         >
           {deskColumn && (
@@ -259,10 +261,7 @@ function TeamHeader({ me, status, round, fetchedAt, connected, banner }: TeamHea
             <span className="text-[0.65rem] tracking-wide text-muted-foreground max-lg:hidden">
               {round.kind === "practice" ? "Practice" : "Round"} {round.sequence}
             </span>
-            <p
-              aria-label="Time left in round"
-              className={cn("figures font-heading text-xl font-semibold lg:text-2xl", lowTime && "text-brand-text")}
-            >
+            <p aria-label="Time left in round" className={cn("figures font-heading text-xl font-semibold lg:text-2xl", lowTime && "text-brand-text")}>
               {round.status === "paused" ? "Paused" : round.status === "pending" ? "Starting soon" : formatClock(remaining ?? 0)}
             </p>
           </div>
@@ -274,6 +273,7 @@ function TeamHeader({ me, status, round, fetchedAt, connected, banner }: TeamHea
           className={cn("size-2 shrink-0 rounded-full", connected ? "bg-gain" : "animate-pulse bg-warning")}
         />
         <div className="flex items-center gap-1">
+          <HowItWorks teamId={me.teamId} />
           <ThemeToggle />
           <Button variant="ghost" size="icon" aria-label="Sign out" title="Sign out" onClick={() => logout.mutate()}>
             <LogOutIcon />

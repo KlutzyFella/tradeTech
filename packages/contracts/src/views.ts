@@ -265,3 +265,9 @@ export interface HostMonitorView {
   readonly trades: readonly MonitorTrade[]
   readonly lastMinute: { readonly filled: number; readonly rejected: number; readonly valuePaise: number }
 }
+
+/** The published rules of a team's event (blueprint §7: teams see the scoring rule before scored trading). */
+export interface EventRulesView {
+  readonly startingCashPaise: number
+  readonly rules: RoomRules
+}

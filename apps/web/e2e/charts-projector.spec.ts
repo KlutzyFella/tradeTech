@@ -1,4 +1,5 @@
-import { expect, request, test, type APIRequestContext } from "@playwright/test"
+import { expect, request, type APIRequestContext } from "@playwright/test"
+import { test } from "./fixtures"
 import { HOST_STATE_PATH, signInAsHost } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
@@ -20,7 +21,9 @@ test.beforeAll(async () => {
   const created = await call("/host/rooms", { name, code, startingCashRupees: 1_000_000, rules: { minOrderIntervalMs: 0 } })
   const base = `/host/rooms/${created.id}`
   await call(`${base}/stocks`, { ticker: "OILCO", name: "Meridian Oil", sector: "Energy", openingPrice: 100, depth: 200_000, borrowPool: 1000 })
-  await call(`${base}/teams`, { teams: Array.from({ length: 4 }, (_, i) => ({ name: `Chartist ${i + 1}`, loginName: `chartist${i + 1}`, password: `chart-pass-${i + 1}` })) })
+  await call(`${base}/teams`, {
+    teams: Array.from({ length: 4 }, (_, i) => ({ name: `Chartist ${i + 1}`, loginName: `chartist${i + 1}`, password: `chart-pass-${i + 1}` })),
+  })
   await call(`${base}/status`, { status: "practice" })
   await call(`${base}/rounds`, { durationMinutes: 30 })
   await call(`${base}/rounds/current/start`)

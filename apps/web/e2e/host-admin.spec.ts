@@ -1,4 +1,5 @@
-import { expect, request, test, type APIRequestContext } from "@playwright/test"
+import { expect, request, type APIRequestContext } from "@playwright/test"
+import { test } from "./fixtures"
 import { signInAsHost } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"
@@ -39,8 +40,7 @@ test("the host resets a password, disqualifies and reinstates a team, and halts 
   await expect(page.getByText(/Password reset/)).toBeVisible()
 
   const api = await request.newContext()
-  const login = (password: string) =>
-    api.post(`${BASE}/api/auth/team/login`, { data: { roomCode: event.code, loginName: "bulls", password } })
+  const login = (password: string) => api.post(`${BASE}/api/auth/team/login`, { data: { roomCode: event.code, loginName: "bulls", password } })
   expect((await login("original-pass")).status()).toBe(401)
   expect((await login("my-own-password")).status()).toBe(200)
 

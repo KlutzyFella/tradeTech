@@ -1,10 +1,11 @@
-import { idSchema, orderTicketSchema, placeOrderSchema } from '@tradetech/contracts'
+import { idSchema, orderTicketSchema, placeOrderSchema, type EventRulesView } from '@tradetech/contracts'
 import { z } from 'zod'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { notFound, ok, parseInput } from '../http/errors.ts'
 import { stockHistory } from '../market/price-history.ts'
 import { signal } from '../plugins/realtime.ts'
 import { requireTeam, teamAuth } from '../plugins/auth.ts'
+import { parseRoomRules } from '../rooms/rules.ts'
 import { listPublicNews } from '../news/news-service.ts'
 import { teamStandings } from '../results/standings.ts'
 import { placeOrder, previewOrder } from '../trading/order-service.ts'
@@ -17,6 +18,11 @@ export const teamRoutes: FastifyPluginAsync<{ previewRateLimitPerSec: number }> 
   app.get('/market', async (request) => ok(await getMarketView(app.db, teamAuth(request).roomId)))
 
   app.get('/portfolio', async (request) => ok(await getPortfolioView(app.db, teamAuth(request))))
+
+  app.get('/rules', async (request) => {
+    const room = await app.db.room.findUniqueOrThrow({ where: { id: teamAuth(request).roomId }, select: { rules: true, startingCashPaise: true } })
+    return ok({ startingCashPaise: Number(room.startingCashPaise), rules: parseRoomRules(room.rules) } satisfies EventRulesView)
+  })
 
   app.get('/standings', async (request) => ok(await teamStandings(app.db, teamAuth(request))))
 

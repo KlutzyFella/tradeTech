@@ -11,6 +11,7 @@ export const queryKeys = {
   news: ["news"] as const,
   standings: ["standings"] as const,
   history: ["history"] as const,
+  rules: ["rules"] as const,
 }
 
 /**

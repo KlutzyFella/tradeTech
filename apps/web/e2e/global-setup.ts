@@ -50,6 +50,6 @@ export default async function globalSetup(): Promise<void> {
         phone: { name: "Bulls", loginName: "bulls", password: "bulls-password" },
         desktop: { name: "Bears", loginName: "bears", password: "bears-password" },
       },
-    }),
+    })
   )
 }

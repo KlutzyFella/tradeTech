@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test"
+import { expect, type APIRequestContext, type Page } from "@playwright/test"
+import { test } from "./fixtures"
 import { signInAsHost } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"

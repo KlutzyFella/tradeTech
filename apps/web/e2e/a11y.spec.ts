@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright"
 import { readFileSync } from "node:fs"
-import { expect, test, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
+import { test } from "./fixtures"
 import { FIXTURE_PATH } from "./global-setup"
 import { signInAsHost } from "./host-session"
 
@@ -41,6 +42,19 @@ test("the team trading screen is accessible with the ticket open", async ({ page
   await page.getByRole("button", { name: /^OILCO/ }).click()
   await page.getByLabel("Shares").fill("10")
   await expect(page.getByText("You pay")).toBeVisible()
+  await expectAccessible(page)
+})
+
+test("the rules explainer is accessible", async ({ page }, testInfo) => {
+  const team = fixture.teams[testInfo.project.name] ?? fixture.teams.phone!
+  const login = await page.request.post(`${BASE}/api/auth/team/login`, {
+    data: { roomCode: fixture.code, loginName: team.loginName, password: team.password },
+  })
+  expect(login.ok()).toBe(true)
+  await page.goto("/")
+  await page.getByRole("button", { name: "How it works" }).click()
+  await expect(page.getByRole("heading", { name: "How you're scored" })).toBeVisible()
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"))
   await expectAccessible(page)
 })
 

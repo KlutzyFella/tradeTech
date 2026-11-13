@@ -1,4 +1,5 @@
-import { expect, request, test, type APIRequestContext, type Page } from "@playwright/test"
+import { expect, request, type APIRequestContext, type Page } from "@playwright/test"
+import { test } from "./fixtures"
 import { HOST_STATE_PATH } from "./host-session"
 
 const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000"

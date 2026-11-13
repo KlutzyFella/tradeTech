@@ -94,6 +94,10 @@ In the host console, open the event and click **Open projector view** in the sid
 
 ## During the event
 
+- **Watching the room:** open the **Monitor** tab. It shows who is online, each team's last order and value, and the latest orders, including rejections and their reasons.
+  - **Margin:** teams near a forced close-out ("Near liquidation", under 1.1×) or in one ("Being liquidated", under 1×) are listed first, and the tab shows an alert count from anywhere in the console.
+  - A close-out waits while the stock is halted. Reopen the stock to let it run; it appears in the feed as **Margin close-out**.
+- **A team says they don't understand scoring:** point them to the **?** button in their header, which opens the event's rules. It also opens automatically the first time a team signs in on a device.
 - **Server restarted mid-round:** the round comes back **paused** (downtime never counts as active time). Check the market on Control, then press **Resume**.
 - **A stock behaves strangely:** **Halt** it on Control. When reopening, choose whether to re-centre its band on the current price.
 - **News crossed a band:** the stock halts automatically (shown as "Halted: band"). Reopen it, usually re-centring the band.

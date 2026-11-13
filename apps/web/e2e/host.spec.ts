@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
+import { rulesAlreadyRead, test } from "./fixtures"
 
 const HOST_EMAIL = process.env.E2E_HOST_EMAIL ?? "host@tradetech.local"
 const HOST_PASSWORD = process.env.E2E_HOST_PASSWORD ?? "host-password-1"
@@ -40,7 +41,9 @@ test("a host sets up and runs a round; a team sees the clock and the news move p
   await host.getByRole("button", { name: "Start round" }).click()
   await expect(host.getByText(/Practice round 1 — running/)).toBeVisible()
 
-  const team = await (await browser.newContext()).newPage()
+  const teamContext = await browser.newContext()
+  await rulesAlreadyRead(teamContext)
+  const team = await teamContext.newPage()
   await team.goto("/")
   await team.getByLabel("Room code").fill(code)
   await team.getByLabel("Team login").fill("bulls")
