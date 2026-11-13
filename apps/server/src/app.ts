@@ -9,6 +9,7 @@ import { dbPlugin } from './plugins/db.ts'
 import { realtimePlugin } from './plugins/realtime.ts'
 import { tickerPlugin } from './rounds/ticker.ts'
 import { webAppPlugin } from './plugins/web-app.ts'
+import { hostEditingRoutes } from './routes/host-editing.ts'
 import { hostLiveRoutes } from './routes/host-live.ts'
 import { hostResultsRoutes } from './routes/host-results.ts'
 import { authRoutes } from './routes/auth.ts'
@@ -52,6 +53,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       await api.register(teamRoutes, { previewRateLimitPerSec: config.PREVIEW_RATE_LIMIT_PER_SEC })
       await api.register(hostRoutes)
       await api.register(hostLiveRoutes)
+      await api.register(hostEditingRoutes)
       await api.register(hostResultsRoutes)
     },
     { prefix: '/api' },

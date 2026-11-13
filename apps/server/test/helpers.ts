@@ -22,7 +22,7 @@ export async function buildTestApp(): Promise<FastifyInstance> {
 
 export async function resetDatabase(app: FastifyInstance): Promise<void> {
   await app.db.$executeRawUnsafe(
-    `TRUNCATE sessions, final_scores, room_events, ledger_entries, positions, orders, news_items, rounds, stocks, teams, rooms, hosts RESTART IDENTITY CASCADE`,
+    `TRUNCATE event_templates, price_points, sessions, final_scores, room_events, ledger_entries, positions, orders, news_items, rounds, stocks, teams, rooms, hosts RESTART IDENTITY CASCADE`,
   )
 }
 

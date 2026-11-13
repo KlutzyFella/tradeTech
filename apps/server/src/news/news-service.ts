@@ -106,6 +106,25 @@ export async function publishNow(db: PrismaClient, room: Room, newsId: bigint, n
   })
 }
 
+/**
+ * Queues a draft (or re-times a scheduled item) to fire at `minute` of the
+ * current round. Refuses minutes past the round's end: it would never fire.
+ */
+export async function scheduleNews(db: PrismaClient, room: Room, newsId: bigint, minute: number): Promise<void> {
+  await withRoomLock(db, room.id, async (tx) => {
+    const item = await tx.newsItem.findFirst({ where: { id: newsId, roomId: room.id } })
+    if (!item) throw notFound('News item')
+    if (item.status === 'published') throw new AppError(409, 'already_published', 'This item is already published.')
+    const round = await unfinishedRound(tx, room.id)
+    if (!round) throw new AppError(409, 'no_round', 'Create a round before scheduling news.')
+    const atMs = Math.round(minute * MS_PER_MINUTE)
+    if (atMs >= round.durationMs) {
+      throw new AppError(409, 'after_round_end', `This round is ${round.durationMs / MS_PER_MINUTE} minutes long; pick an earlier minute.`)
+    }
+    await tx.newsItem.update({ where: { id: item.id }, data: { status: 'scheduled', roundId: round.id, scheduledAtMs: atMs } })
+  })
+}
+
 export function toHostNewsView(item: NewsItem): HostNewsView {
   return {
     id: item.id.toString(),

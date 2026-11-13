@@ -7,7 +7,11 @@ export function parseRoomRules(stored: unknown): RoomRules {
 
 export type RoomRulesOverrides = { readonly [K in keyof RoomRules]?: RoomRules[K] | undefined }
 
-export function mergeRoomRules(overrides: RoomRulesOverrides | undefined): RoomRules {
-  const defined = Object.fromEntries(Object.entries(overrides ?? {}).filter(([, v]) => v !== undefined))
-  return roomRulesSchema.parse({ ...DEFAULT_ROOM_RULES, ...defined })
+/** Only the rules actually given: a blank (undefined) field never overrides a value. */
+export function definedRules(overrides: RoomRulesOverrides | undefined): Partial<RoomRules> {
+  return Object.fromEntries(Object.entries(overrides ?? {}).filter(([, v]) => v !== undefined)) as Partial<RoomRules>
+}
+
+export function mergeRoomRules(overrides: RoomRulesOverrides | undefined, base: RoomRules = DEFAULT_ROOM_RULES): RoomRules {
+  return roomRulesSchema.parse({ ...base, ...definedRules(overrides) })
 }

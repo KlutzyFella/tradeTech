@@ -45,6 +45,8 @@ export const createRoomSchema = z
     code: roomCodeSchema,
     startingCashRupees: z.number().int().positive().max(MAX_STARTING_CASH_RUPEES),
     rules: roomRulesSchema.partial().optional(),
+    /** Start from a saved template: its stocks, rules and news (as drafts). Typed values win. */
+    templateId: z.string().regex(/^[1-9]\d{0,17}$/).optional(),
   })
   .strict()
 export type CreateRoom = z.infer<typeof createRoomSchema>
@@ -144,3 +146,75 @@ export const resetPasswordSchema = z.object({ password: newPasswordSchema }).str
 
 export const EXPORT_KINDS = ['standings', 'orders', 'ledger', 'news'] as const
 export type ExportKind = (typeof EXPORT_KINDS)[number]
+
+/** Partial rule changes; the merged result is validated against roomRulesSchema. */
+export const updateRulesSchema = roomRulesSchema
+  .partial()
+  .strict()
+  .refine((r) => Object.keys(r).length > 0, { message: 'Change at least one rule.' })
+
+/** Ticker is fixed once created (history, news and templates refer to it). */
+export const updateStockSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    sector: z.string().trim().min(1).max(60),
+    profile: z.string().max(4000),
+    openingPrice: z.number().positive().max(1_000_000),
+    depth: z.number().positive().max(1e12),
+    sensitivity: z.number().min(0).max(10),
+    shortable: z.boolean(),
+    borrowPool: z.number().int().min(0).max(1e12),
+    bandFraction: z.number().positive().max(0.9),
+  })
+  .partial()
+  .strict()
+  .refine((s) => Object.keys(s).length > 0, { message: 'Change at least one field.' })
+export type UpdateStock = z.infer<typeof updateStockSchema>
+
+export const scheduleDraftSchema = z.object({ minute: z.number().min(0).max(240) }).strict()
+
+const templateStockSchema = createStockSchema
+const templateNewsSchema = z
+  .object({
+    headline: z.string().trim().min(1).max(200),
+    body: z.string().max(4000).default(''),
+    sourceLabel: z.string().trim().max(80).optional(),
+    kind: z.enum(NEWS_KINDS),
+    /** ticker → shock (fraction). Tickers, not ids, so templates move between events. */
+    impacts: z.record(z.string().regex(/^[A-Z][A-Z0-9]{0,9}$/), z.number().gt(-0.95).lt(10)).default({}),
+    plannedMinute: z.number().min(0).max(240).optional(),
+  })
+  .strict()
+
+/** A reusable event: starting cash, rules, stocks and a news calendar. Never teams. */
+export const eventTemplateDataSchema = z
+  .object({
+    version: z.literal(1),
+    startingCashRupees: z.number().int().positive().max(1_000_000_000),
+    rules: roomRulesSchema,
+    stocks: z.array(templateStockSchema).min(1).max(50),
+    news: z.array(templateNewsSchema).max(200).default([]),
+  })
+  .strict()
+  .superRefine((t, ctx) => {
+    const tickers = new Set<string>()
+    t.stocks.forEach((s, i) => {
+      if (tickers.has(s.ticker)) ctx.addIssue({ code: 'custom', path: ['stocks', i, 'ticker'], message: `Duplicate ticker ${s.ticker}` })
+      tickers.add(s.ticker)
+    })
+    t.news.forEach((n, i) => {
+      for (const ticker of Object.keys(n.impacts)) {
+        if (!tickers.has(ticker)) ctx.addIssue({ code: 'custom', path: ['news', i, 'impacts'], message: `Unknown ticker ${ticker} (not in this template's stocks)` })
+      }
+      if ((n.kind === 'mechanical') !== Object.keys(n.impacts).length > 0) {
+        ctx.addIssue({ code: 'custom', path: ['news', i, 'impacts'], message: 'Mechanical news needs impacts; information-only news has none.' })
+      }
+    })
+  })
+export type EventTemplateData = z.infer<typeof eventTemplateDataSchema>
+
+export const saveTemplateSchema = z
+  .object({ name: z.string().trim().min(1).max(120), description: z.string().trim().max(500).default('') })
+  .strict()
+
+export const importTemplateSchema = saveTemplateSchema.safeExtend({ data: eventTemplateDataSchema }).strict()

@@ -20,6 +20,7 @@ import {
 import { ok, parseInput } from '../http/errors.ts'
 import { hostAuth, requireHost } from '../plugins/auth.ts'
 import { signal } from '../plugins/realtime.ts'
+import { createRoomFromTemplate, ownedTemplate } from '../host/templates.ts'
 import { latestRound, toRoundView } from '../rounds/clock.ts'
 import { toStockView } from '../trading/market-state.ts'
 
@@ -45,7 +46,10 @@ export const hostRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/host/rooms', async (request) => {
     const input = parseInput(createRoomSchema, request.body)
-    const room = await createRoom(app.db, hostAuth(request).hostId, input)
+    const { hostId } = hostAuth(request)
+    const room = input.templateId
+      ? await createRoomFromTemplate(app.db, hostId, input, await ownedTemplate(app.db, hostId, BigInt(input.templateId)))
+      : await createRoom(app.db, hostId, input)
     return ok({ id: room.id.toString(), code: room.code, name: room.name, status: room.status })
   })
 

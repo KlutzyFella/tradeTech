@@ -210,3 +210,13 @@ export interface ProjectorView {
     readonly entries: readonly { readonly name: string; readonly rank: number; readonly liquidationValuePaise: number }[]
   } | null
 }
+
+export interface HostTemplateSummary {
+  readonly id: string
+  readonly name: string
+  readonly description: string
+  readonly startingCashRupees: number
+  readonly stockCount: number
+  readonly newsCount: number
+  readonly updatedAt: string
+}

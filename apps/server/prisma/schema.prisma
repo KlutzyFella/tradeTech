@@ -73,8 +73,9 @@ model Host {
   passwordHash String
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
 
-  rooms    Room[]
-  sessions Session[]
+  rooms          Room[]
+  sessions       Session[]
+  eventTemplates EventTemplate[]
 
   @@map("hosts")
 }
@@ -370,4 +371,21 @@ model PricePoint {
   @@index([stockId, at])
   @@index([roomId, at])
   @@map("price_points")
+}
+
+/// A host's reusable event (starting cash, rules, stocks, news calendar).
+/// `data` is validated against eventTemplateDataSchema (version 1) on every write.
+model EventTemplate {
+  id          BigInt   @id @default(autoincrement())
+  hostId      BigInt
+  name        String
+  description String   @default("")
+  data        Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([hostId])
+  @@map("event_templates")
 }
