@@ -25,7 +25,7 @@ export class NetworkError extends Error {
   }
 }
 
-async function request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+async function request<T>(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<T> {
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
@@ -51,4 +51,5 @@ async function request<T>(method: "GET" | "POST", path: string, body?: unknown):
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {}),
+  del: <T>(path: string) => request<T>("DELETE", path),
 }

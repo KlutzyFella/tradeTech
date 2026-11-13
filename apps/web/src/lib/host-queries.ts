@@ -1,4 +1,4 @@
-import type { HostNewsView, HostRoomSummary, HostRoomView } from "@tradetech/contracts"
+import type { HostNewsView, HostRoomSummary, HostRoomView, HostTemplateSummary } from "@tradetech/contracts"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { api } from "./api"
@@ -11,10 +11,14 @@ export const hostKeys = {
   room: (id: string) => ["host", "room", id] as const,
   news: (id: string) => ["host", "news", id] as const,
   board: (id: string) => ["host", "board", id] as const,
+  templates: ["host", "templates"] as const,
 }
 
 export const useHostRooms = () =>
-  useQuery({ queryKey: hostKeys.rooms, queryFn: () => api.get<HostRoomSummary[]>("/host/rooms") })
+  useQuery({
+    queryKey: hostKeys.rooms,
+    queryFn: () => api.get<HostRoomSummary[]>("/host/rooms"),
+  })
 
 export const useHostRoom = (roomId: string) =>
   useQuery({
@@ -39,6 +43,8 @@ interface HostActionOptions<TVars> {
    * unknown body fields.
    */
   body?: (vars: TVars) => unknown
+  /** DELETE sends no body. */
+  method?: "POST" | "DELETE"
 }
 
 /**
@@ -47,11 +53,31 @@ interface HostActionOptions<TVars> {
  */
 export function useHostAction<TVars = unknown>(roomId: string, path: (vars: TVars) => string, options: HostActionOptions<TVars> = {}) {
   const queryClient = useQueryClient()
-  const { success, body = (vars: TVars) => vars } = options
+  const { success, body = (vars: TVars) => vars, method = "POST" } = options
   return useMutation({
-    mutationFn: (vars: TVars) => api.post(`/host/rooms/${roomId}${path(vars)}`, body(vars) ?? {}),
+    mutationFn: (vars: TVars) =>
+      method === "DELETE" ? api.del(`/host/rooms/${roomId}${path(vars)}`) : api.post(`/host/rooms/${roomId}${path(vars)}`, body(vars) ?? {}),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["host"] })
+      if (success) toast.success(success)
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export const useHostTemplates = () =>
+  useQuery({
+    queryKey: hostKeys.templates,
+    queryFn: () => api.get<HostTemplateSummary[]>("/host/templates"),
+  })
+
+/** Template commands live outside any room; they refresh the template list. */
+export function useTemplateAction<TVars>(request: (vars: TVars) => Promise<unknown>, success?: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: request,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: hostKeys.templates })
       if (success) toast.success(success)
     },
     onError: (error) => toast.error(error.message),

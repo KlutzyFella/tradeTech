@@ -20,24 +20,42 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
   const create = useHostAction<Record<string, unknown>>(room.id, () => "/news")
   const news = useHostNews(room.id)
   const publishDraft = useHostAction<{ id: string }>(room.id, (v) => `/news/${v.id}/publish`, { success: "Published", body: () => ({}) })
+  const scheduleDraft = useHostAction<{ id: string; minute: number }>(room.id, (v) => `/news/${v.id}/schedule`, {
+    success: "Scheduled for this round",
+    body: ({ minute }) => ({ minute }),
+  })
+  const roundOpen = room.round !== null && room.round.status !== "ended"
+  const askMinute = (id: string, suggested?: number) => {
+    const answer = window.prompt("Publish at which minute of this round?", suggested === undefined ? "" : String(suggested))
+    if (answer === null || answer.trim() === "") return
+    const value = Number(answer)
+    if (Number.isFinite(value) && value >= 0) scheduleDraft.mutate({ id, minute: value })
+  }
 
   const impacts = Object.fromEntries(
     Object.entries(shocks)
       .filter(([, pct]) => pct !== "" && Number(pct) !== 0 && Number.isFinite(Number(pct)))
-      .map(([id, pct]) => [id, Number(pct) / 100]),
+      .map(([id, pct]) => [id, Number(pct) / 100])
   )
   const ready = headline.trim() !== "" && (kind === "information" || Object.keys(impacts).length > 0)
   const submit = (mode: Mode) => {
     if (mode === "publish" && !window.confirm(`Publish “${headline}” to every team now?`)) return
     create.mutate(
-      { headline, body, kind, impacts: kind === "mechanical" ? impacts : {}, mode, ...(mode === "schedule" ? { scheduleAtMinute: Number(minute) } : {}) },
+      {
+        headline,
+        body,
+        kind,
+        impacts: kind === "mechanical" ? impacts : {},
+        mode,
+        ...(mode === "schedule" ? { scheduleAtMinute: Number(minute) } : {}),
+      },
       {
         onSuccess: () => {
           setHeadline("")
           setBody("")
           setShocks({})
         },
-      },
+      }
     )
   }
   const tickers = new Map(room.stocks.map((s) => [s.id, s.ticker]))
@@ -52,7 +70,13 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="news-body">Details for teams</Label>
-          <textarea id="news-body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <textarea
+            id="news-body"
+            rows={3}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
         </div>
         <div role="radiogroup" aria-label="News type" className="grid grid-cols-2 gap-2">
           {(["information", "mechanical"] as const).map((k) => (
@@ -80,7 +104,12 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
                     inputMode="decimal"
                     aria-label={`${s.ticker} move in percent`}
                     value={shocks[s.id] ?? ""}
-                    onChange={(e) => setShocks({ ...shocks, [s.id]: e.target.value.replace(/[^\d.-]/g, "") })}
+                    onChange={(e) =>
+                      setShocks({
+                        ...shocks,
+                        [s.id]: e.target.value.replace(/[^\d.-]/g, ""),
+                      })
+                    }
                     placeholder="0"
                     className="figures h-8 w-20 text-right"
                   />
@@ -89,7 +118,11 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
             </div>
           </fieldset>
         )}
-        {create.error && <p role="alert" className="text-sm text-destructive">{create.error.message}</p>}
+        {create.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {create.error.message}
+          </p>
+        )}
         <div className="flex flex-wrap items-end gap-2">
           <Button disabled={!ready || create.isPending} onClick={() => submit("publish")}>
             Publish now
@@ -100,7 +133,13 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
           <div className="flex items-end gap-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="news-minute">At round minute</Label>
-              <Input id="news-minute" inputMode="decimal" value={minute} onChange={(e) => setMinute(e.target.value.replace(/[^\d.]/g, ""))} className="figures w-24" />
+              <Input
+                id="news-minute"
+                inputMode="decimal"
+                value={minute}
+                onChange={(e) => setMinute(e.target.value.replace(/[^\d.]/g, ""))}
+                className="figures w-24"
+              />
             </div>
             <Button variant="outline" disabled={!ready || minute === "" || create.isPending} onClick={() => submit("schedule")}>
               Schedule
@@ -118,7 +157,13 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium">{item.headline}</span>
                 <Badge variant={item.status === "published" ? "secondary" : "outline"}>
-                  {item.status === "scheduled" ? `At minute ${((item.scheduledAtMs ?? 0) / 60000).toFixed(1)}` : item.status === "draft" ? "Draft" : "Published"}
+                  {item.status === "scheduled"
+                    ? `At minute ${minuteOf(item.scheduledAtMs)}`
+                    : item.status === "draft"
+                      ? item.scheduledAtMs === null
+                        ? "Draft"
+                        : `Draft, planned for minute ${minuteOf(item.scheduledAtMs)}`
+                      : "Published"}
                 </Badge>
               </div>
               <p className="figures text-sm text-muted-foreground">
@@ -129,9 +174,36 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
                       .join(", ")}
               </p>
               {item.status !== "published" && (
-                <Button size="sm" variant="outline" className="self-start" onClick={() => window.confirm("Publish this now?") && publishDraft.mutate({ id: item.id })}>
-                  Publish now
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => window.confirm("Publish this now?") && publishDraft.mutate({ id: item.id })}>
+                    Publish now
+                  </Button>
+                  {item.status === "draft" && roundOpen && item.scheduledAtMs !== null && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={scheduleDraft.isPending}
+                      onClick={() =>
+                        scheduleDraft.mutate({
+                          id: item.id,
+                          minute: item.scheduledAtMs! / 60000,
+                        })
+                      }
+                    >
+                      Schedule for minute {minuteOf(item.scheduledAtMs)}
+                    </Button>
+                  )}
+                  {roundOpen && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={scheduleDraft.isPending}
+                      onClick={() => askMinute(item.id, item.scheduledAtMs === null ? undefined : item.scheduledAtMs / 60000)}
+                    >
+                      {item.status === "scheduled" ? "Change minute" : "Schedule at…"}
+                    </Button>
+                  )}
+                </div>
               )}
             </li>
           ))}
@@ -140,3 +212,5 @@ export function NewsDesk({ room }: { room: HostRoomView }) {
     </div>
   )
 }
+
+const minuteOf = (ms: number | null) => +((ms ?? 0) / 60000).toFixed(1)

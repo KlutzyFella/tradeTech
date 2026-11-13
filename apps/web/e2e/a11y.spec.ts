@@ -14,7 +14,15 @@ const fixture = JSON.parse(readFileSync(FIXTURE_PATH, "utf8")) as {
 async function expectAccessible(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()
   const blocking = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical")
-  expect(blocking.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(", ")})`)).toEqual([])
+  expect(
+    blocking.map(
+      (v) =>
+        `${v.id}: ${v.help} (${v.nodes
+          .map((n) => n.target.join(" "))
+          .slice(0, 3)
+          .join(", ")})`
+    )
+  ).toEqual([])
 }
 
 test("the sign-in screen is accessible", async ({ page }) => {
@@ -52,6 +60,20 @@ test("the host console is accessible", async ({ page }) => {
   await signInAsHost(page.context())
   await page.goto("/")
   await expect(page.getByRole("heading", { name: "TradeTech host console" })).toBeVisible()
+  await expectAccessible(page)
+})
+
+test("the host's setup tab and stock editor are accessible", async ({ page }) => {
+  await signInAsHost(page.context())
+  await page.goto("/")
+  await page.getByRole("button", { name: new RegExp(`Room code ${fixture.code}`) }).click()
+  await page.getByRole("button", { name: "Setup" }).click()
+  await expect(page.getByRole("heading", { name: "Rules" })).toBeVisible()
+  await expectAccessible(page)
+  await page.getByRole("button", { name: "Edit OILCO" }).click()
+  await expect(page.getByRole("dialog", { name: "Edit OILCO" })).toBeVisible()
+  // Audit the settled sheet, not its slide-in (mid-fade text reads as low contrast).
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"))
   await expectAccessible(page)
 })
 

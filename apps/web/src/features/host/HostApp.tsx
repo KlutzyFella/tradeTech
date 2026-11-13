@@ -1,13 +1,13 @@
 import type { HostRoomView, Me } from "@tradetech/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeftIcon, LayoutDashboardIcon, LogOutIcon, MonitorIcon, NewspaperIcon, SettingsIcon, TrophyIcon } from "lucide-react"
+import { ArrowLeftIcon, BookmarkPlusIcon, LayoutDashboardIcon, LogOutIcon, MonitorIcon, NewspaperIcon, SettingsIcon, TrophyIcon } from "lucide-react"
 import { useState, type ComponentType } from "react"
 import { BrandMark, ProductLockup } from "@/components/brand/BrandLogo"
 import { SkipLink } from "@/components/skip-link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
-import { useHostRoom } from "@/lib/host-queries"
+import { useHostRoom, useTemplateAction } from "@/lib/host-queries"
 import { cn } from "@/lib/utils"
 import { ControlPanel } from "./ControlPanel"
 import { NewsDesk } from "./NewsDesk"
@@ -17,7 +17,11 @@ import { SetupPanel } from "./SetupPanel"
 import { Standings } from "./Standings"
 
 type Tab = "control" | "news" | "standings" | "setup"
-const TABS: readonly { id: Tab; label: string; icon: ComponentType<{ className?: string }> }[] = [
+const TABS: readonly {
+  id: Tab
+  label: string
+  icon: ComponentType<{ className?: string }>
+}[] = [
   { id: "control", label: "Control", icon: LayoutDashboardIcon },
   { id: "news", label: "News", icon: NewspaperIcon },
   { id: "standings", label: "Standings", icon: TrophyIcon },
@@ -27,7 +31,10 @@ const TABS: readonly { id: Tab; label: string; icon: ComponentType<{ className?:
 export function HostApp({ me }: { me: Extract<Me, { kind: "host" }> }) {
   const [roomId, setRoomId] = useState<string | null>(null)
   const queryClient = useQueryClient()
-  const logout = useMutation({ mutationFn: () => api.post("/auth/logout"), onSuccess: () => queryClient.clear() })
+  const logout = useMutation({
+    mutationFn: () => api.post("/auth/logout"),
+    onSuccess: () => queryClient.clear(),
+  })
   return (
     <div className="flex min-h-svh flex-col">
       <SkipLink />
@@ -36,7 +43,7 @@ export function HostApp({ me }: { me: Extract<Me, { kind: "host" }> }) {
           <ProductLockup className="max-sm:hidden" />
           <BrandMark className="h-6 sm:hidden" />
           <div className="min-w-0 flex-1 border-l border-border pl-4">
-            <h1 className="truncate text-base font-semibold leading-tight">
+            <h1 className="truncate text-base leading-tight font-semibold">
               <span className="max-sm:sr-only">TradeTech </span>
               <span className="sm:hidden">Host console</span>
               <span className="max-sm:hidden">host console</span>
@@ -83,11 +90,11 @@ function RoomConsole({ roomId }: { roomId: string }) {
                 aria-current={active ? "page" : undefined}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "flex shrink-0 items-center gap-2.5 px-3 py-2 font-heading text-sm font-medium outline-none transition-colors focus-visible:bg-muted",
+                  "flex shrink-0 items-center gap-2.5 px-3 py-2 font-heading text-sm font-medium transition-colors outline-none focus-visible:bg-muted",
                   "max-lg:-mb-px max-lg:border-b-2 lg:rounded-md",
                   active
                     ? "text-foreground max-lg:border-brand-text lg:bg-muted lg:shadow-[inset_3px_0_0_var(--brand-text)]"
-                    : "text-muted-foreground hover:text-foreground max-lg:border-transparent lg:hover:bg-muted/60",
+                    : "text-muted-foreground hover:text-foreground max-lg:border-transparent lg:hover:bg-muted/60"
                 )}
               >
                 <Icon className="size-4 max-lg:hidden" />
@@ -108,10 +115,14 @@ function RoomConsole({ roomId }: { roomId: string }) {
 }
 
 function EventIdentity({ room }: { room: HostRoomView }) {
+  const saveTemplate = useTemplateAction(
+    (name: string) => api.post(`/host/rooms/${room.id}/save-template`, { name }),
+    "Saved as a template. Find it under Templates on the events screen."
+  )
   return (
     <div className="flex flex-col gap-2 lg:rounded-lg lg:border lg:border-border lg:bg-surface lg:p-4">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-xl font-semibold leading-tight tracking-tight">{room.name}</h2>
+        <h2 className="text-xl leading-tight font-semibold tracking-tight">{room.name}</h2>
         <RoomStatusBadge status={room.status} />
       </div>
       <p className="text-sm text-muted-foreground">
@@ -121,14 +132,22 @@ function EventIdentity({ room }: { room: HostRoomView }) {
       <p className="figures text-xs text-muted-foreground">
         {room.teams.length} teams, {room.stocks.length} stocks
       </p>
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-1 self-start"
-        onClick={() => window.open(`/projector/${room.id}`, "_blank", "noopener")}
-      >
+      <Button variant="outline" size="sm" className="mt-1 self-start" onClick={() => window.open(`/projector/${room.id}`, "_blank", "noopener")}>
         <MonitorIcon data-icon="inline-start" />
         Open projector view
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        disabled={room.stocks.length === 0 || saveTemplate.isPending}
+        onClick={() => {
+          const name = window.prompt("Template name (stocks, rules and news are saved; teams are not)", room.name)
+          if (name?.trim()) saveTemplate.mutate(name.trim())
+        }}
+      >
+        <BookmarkPlusIcon data-icon="inline-start" />
+        Save as template
       </Button>
     </div>
   )
