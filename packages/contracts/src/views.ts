@@ -1,4 +1,4 @@
-import type { RoomStatus } from './host.ts'
+import type { RoomRules, RoomStatus } from './host.ts'
 import type { OrderIntent } from './orders.ts'
 
 /**
@@ -154,6 +154,7 @@ export interface HostStockView extends StockView {
   readonly borrowPool: number
   readonly borrowUsed: number
   readonly haltReason: string | null
+  readonly bandFraction: number
 }
 
 export interface HostTeamView {
@@ -166,6 +167,7 @@ export interface HostTeamView {
 
 export interface HostRoomView {
   readonly id: string
+  readonly rules: RoomRules
   readonly code: string
   readonly name: string
   readonly status: RoomStatus

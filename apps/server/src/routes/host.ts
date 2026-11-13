@@ -21,6 +21,7 @@ import { ok, parseInput } from '../http/errors.ts'
 import { hostAuth, requireHost } from '../plugins/auth.ts'
 import { signal } from '../plugins/realtime.ts'
 import { createRoomFromTemplate, ownedTemplate } from '../host/templates.ts'
+import { parseRoomRules } from '../rooms/rules.ts'
 import { latestRound, toRoundView } from '../rounds/clock.ts'
 import { toStockView } from '../trading/market-state.ts'
 
@@ -63,6 +64,7 @@ export const hostRoutes: FastifyPluginAsync = async (app) => {
       name: room.name,
       status: room.status,
       startingCashPaise: Number(room.startingCashPaise),
+      rules: parseRoomRules(room.rules),
       marketVersion: Number(room.marketVersion),
       round: round ? toRoundView(round, now) : null,
       stocks: room.stocks.map((s) => ({
@@ -72,6 +74,7 @@ export const hostRoutes: FastifyPluginAsync = async (app) => {
         borrowPool: s.borrowPool,
         borrowUsed: s.borrowUsed,
         haltReason: s.haltReason,
+        bandFraction: s.bandFraction,
       })),
       teams: room.teams.map((t) => ({ ...t, id: t.id.toString(), cashPaise: Number(t.cashPaise) })),
     } satisfies HostRoomView)
