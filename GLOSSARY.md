@@ -20,6 +20,10 @@ _Avoid_: Player, user, account
 A timed period of trading; either a practice round (reset before scoring) or a scored round (positions carry forward).
 _Avoid_: Session, level
 
+**Event template**:
+A host's reusable snapshot of a room's starting cash, rules, stocks and news calendar (impacts keyed by ticker). It never includes teams, trades or results, and a room created from it gets a copy.
+_Avoid_: Preset, blueprint, clone
+
 ## Market
 
 **Simulated dealer**:

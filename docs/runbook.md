@@ -65,6 +65,25 @@ BASE_URL=https://<domain> HOST_EMAIL=... HOST_PASSWORD=... pnpm --filter @tradet
 
 Prepare 6–10 news items per scored hour in advance (blueprint §5). Schedule them with the news desk's "At round minute" field, and keep a few drafts for unscheduled moments.
 
+## Editing rules and stocks
+
+All edits are on the **Setup** tab.
+
+- **Rules** (spread, fee, limits, margin, the pause after news, and the order interval) use plain units: percentages, multiples and seconds. You can edit them in draft and practice. They lock once the event goes live, so every scored trade uses the same rules.
+- **Stocks:** click **Edit** next to a stock.
+  - The name, sector and profile can change at any time until the event closes.
+  - Depth, sensitivity, band, borrow pool and shorting can change in draft and practice. The borrow pool can't go below the shares currently lent.
+  - The opening price can only change in draft, because it resets the stock's price.
+  - **Remove** appears only in draft, and is refused while a draft news item still moves that stock.
+- The ticker can never change, because history, news and templates refer to it.
+
+## Templates: reusing an event
+
+- **Save:** in the event sidebar, click **Save as template**. It saves the starting cash, rules, stocks and every news item with its price moves and planned minute. Teams, trades and results are never saved.
+- **Reuse:** on the events screen, choose the template under **Start from** when creating an event. The stocks and rules are copied, and the news arrives as drafts. A draft that had a schedule shows "planned for minute N". Once a round exists, click **Schedule for minute N** on each one. Then add the teams.
+- **Move between accounts or deployments:** click **Download** next to a template, and **Import file** on the other side. Files are checked before upload, so a mistyped ticker in a news item is reported by name.
+- Deleting a template never affects events already made from it.
+
 ## The venue screen
 
 In the host console, open the event and click **Open projector view** in the sidebar. A new window opens at `/projector/<event id>`. Drag it to the projector or second display and click **Full screen**.

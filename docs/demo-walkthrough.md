@@ -46,6 +46,9 @@ Use **exactly** the email of the host account you already created. The seed atta
 
 - [ ] **Setup tab:** the 10 stocks show their opening prices and liquidity depth, and the 6 teams show "signs in as …" and ₹10,00,000 cash each.
   *Talking point:* hosts add companies and bulk-import teams here. Depth is suggested automatically from the number of teams.
+- [ ] **Edit a stock and a rule:** click **Edit** next to a stock, change its profile and save. Then, under **Rules**, change the fee (shown as a percentage) and save.
+  *Talking point:* rules lock when the event goes live, so every scored trade uses the same rules. Names and profiles stay editable for typos.
+- [ ] **Save as template** (event sidebar), then **All events**: the template is listed. When creating an event, it can be chosen under **Start from**, which brings over the stocks, rules and news calendar, but never teams.
 - [ ] **Control tab:** "Practice — results don't count and can be reset."
 - [ ] **Projector:** in the event sidebar, click **Open projector view**, drag the window to the venue screen and click **Full screen**.
   It shows the event name, a giant round clock, a market board with mini price charts, the latest headline and how to join (site + room code). Leave it up for the rest of the demo: every step below also shows there.
