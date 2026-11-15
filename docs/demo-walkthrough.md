@@ -123,9 +123,9 @@ The demo seed leaves two practice stories as drafts in the News desk: a rumour p
 
 These checks run on every code change and were measured on the production build:
 
-- **77 rule tests** on the market maths. They include the worked example from the design document, to the paisa: a ₹1,00,652.43 purchase closing at ₹1,08,378.99.
-- **94 server tests** against a real database. They cover duplicate-order protection, two simultaneous orders never overspending one team's cash, short and cover reconciliation, news, halts, margin liquidation, the round clock, restarts, final scoring, and CSV exports.
-- **41 end-to-end browser tests** on a phone and a 1080p laptop. They cover the whole event lifecycle, editing and templates, the live monitor (including a real margin close-out), the rules explainer, and accessibility audits of every main screen.
+- **80 rule tests** on the market maths. They include the worked example from the design document, to the paisa: a ₹1,00,652.43 purchase closing at ₹1,08,378.99.
+- **100 server tests** against a real database. They cover duplicate-order protection, two simultaneous orders never overspending one team's cash, short and cover reconciliation, news, halts, margin liquidation, the round clock, restarts, final scoring, and CSV exports.
+- **43 end-to-end browser tests** on a phone and a 1080p laptop. They cover the whole event lifecycle, editing and templates, the live monitor (including a real margin close-out), the rules explainer, and accessibility audits of every main screen.
 - **Load test** with every team ordering every second, the maximum the rules allow:
   - 20 teams: 95% of orders confirmed within 113 ms, zero errors.
   - 60 teams: within 455 ms, zero errors.
