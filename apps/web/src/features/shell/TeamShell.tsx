@@ -13,6 +13,7 @@ import { MarketScreen } from "@/features/market/MarketScreen"
 import { NewsProvider, useNewsContext } from "@/features/news/news-context"
 import { BreakingNewsStrip, NewsColumn, NewsPanel, NewsReader } from "@/features/news/NewsViews"
 import { OrderSlip } from "@/features/order/OrderSlip"
+import { HeaderScore } from "@/features/portfolio/HeaderScore"
 import { DeskSummary, PortfolioScreen } from "@/features/portfolio/PortfolioScreen"
 import { HowItWorks } from "@/features/rules/HowItWorks"
 import { api } from "@/lib/api"
@@ -93,6 +94,7 @@ function TeamLayout({ me, tab, setTab, selected, setSelected }: TeamLayoutProps)
       round={market.data?.round ?? null}
       fetchedAt={market.dataUpdatedAt}
       connected={connected}
+      desktop={desktop}
       banner={<BreakingNewsStrip />}
     />
   )
@@ -222,11 +224,13 @@ interface TeamHeaderProps {
   round: RoundView | null
   fetchedAt: number
   connected: boolean
+  /** Laptop header shows the score inline; phones get a slim strip under the header row. */
+  desktop: boolean
   /** Shown under the header row, inside the sticky area (breaking news). */
   banner?: ReactNode
 }
 
-function TeamHeader({ me, status, round, fetchedAt, connected, banner }: TeamHeaderProps) {
+function TeamHeader({ me, status, round, fetchedAt, connected, desktop, banner }: TeamHeaderProps) {
   const queryClient = useQueryClient()
   const logout = useMutation({ mutationFn: () => api.post("/auth/logout"), onSuccess: () => queryClient.clear() })
   const remaining = useCountdown(round, fetchedAt)
@@ -256,6 +260,7 @@ function TeamHeader({ me, status, round, fetchedAt, connected, banner }: TeamHea
             {status === "live" ? <Badge variant="live">{statusLine}</Badge> : <span className="truncate">{statusLine}</span>}
           </p>
         </div>
+        {desktop && <HeaderScore layout="inline" />}
         {showClock && (
           <div className="flex flex-col items-end leading-none">
             <span className="text-[0.65rem] tracking-wide text-muted-foreground max-lg:hidden">
@@ -280,6 +285,7 @@ function TeamHeader({ me, status, round, fetchedAt, connected, banner }: TeamHea
           </Button>
         </div>
       </div>
+      {!desktop && <HeaderScore layout="strip" />}
       {banner}
     </header>
   )

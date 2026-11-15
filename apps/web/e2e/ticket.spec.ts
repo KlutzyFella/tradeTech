@@ -38,6 +38,12 @@ test("the ticket says when trading is paused, still estimates, fixes an oversize
   const event = await pausedWithHolding(host, page.request)
 
   await page.goto("/")
+  // The header always shows the score, its change and spending money.
+  const header = page.getByRole("banner")
+  await expect(header).toContainText("Score")
+  await expect(header).toContainText("₹9,99,970")
+  await expect(header).toContainText("-₹30.02")
+  await expect(header).toContainText("₹9,89,985")
   await page.getByRole("button", { name: /^AIRCO/ }).click()
   const status = page.getByRole("status").filter({ hasText: "Trading is paused" })
   await expect(status).toHaveText("Trading is paused. Orders open again when the host resumes the round.")
@@ -66,5 +72,8 @@ test("the ticket says when trading is paused, still estimates, fixes an oversize
   await expect(sell).toBeEnabled()
   await sell.click()
   await expect(page.getByText(/Sold 100 AIRCO at ₹\d+\.\d\d average/)).toBeVisible()
+  // Cash is back; the score was already counting those shares at their closing value.
+  await expect(header).not.toContainText("₹9,89,985")
+  await expect(header).toContainText("₹9,99,970")
   await host.dispose()
 })
