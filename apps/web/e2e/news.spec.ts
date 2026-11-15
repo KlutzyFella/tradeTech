@@ -98,15 +98,23 @@ test("on a laptop, news can sit in the side panel, beside the market or only in 
   await openAsTeam(page)
   await publish("Placement check story")
 
-  // Default: the side panel under the order ticket.
-  await expect(page.getByRole("region", { name: /^News/ }).filter({ has: page.getByRole("button", { name: "Collapse news panel" }) })).toBeVisible()
+  // Default: a news column beside the market, with the story and an unread badge in view.
+  await expect(page.getByRole("button", { name: "Move news to the side panel" })).toBeVisible()
+  await expect(page.getByRole("article", { name: "Placement check story" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Collapse news panel" })).toHaveCount(0)
+
+  // A window too narrow for a column falls back to the side panel under the ticket.
+  await page.setViewportSize({ width: 1200, height: 900 })
+  await expect(page.getByRole("button", { name: "Collapse news panel" })).toBeVisible()
+  await page.setViewportSize({ width: 1920, height: 1080 })
 
   await page.getByRole("button", { name: /^News/ }).click()
   const choices = page.getByRole("radiogroup", { name: "Where news shows on your desk" })
-  await choices.getByRole("radio", { name: /Beside market/ }).click()
+  await expect(choices.getByRole("radio", { name: /Beside market/ })).toHaveAttribute("aria-checked", "true")
+  await choices.getByRole("radio", { name: /Side panel/ }).click()
   await page.getByRole("button", { name: "Market" }).click()
-  await expect(page.getByRole("button", { name: "Move news to the side panel" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Collapse news panel" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Collapse news panel" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Move news to the side panel" })).toHaveCount(0)
 
   await page.getByRole("button", { name: /^News/ }).click()
   await choices.getByRole("radio", { name: /Tab only/ }).click()

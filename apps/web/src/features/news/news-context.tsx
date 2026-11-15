@@ -88,7 +88,9 @@ export function NewsProvider({ teamId, items, loading, error, stocks, heldIds, s
 
   const [placement, setPlacementState] = useState<NewsPlacement>(() => {
     const stored = readStorage("tradetech:news-placement")
-    return PLACEMENTS.includes(stored as NewsPlacement) ? (stored as NewsPlacement) : "panel"
+    // Default: a news column beside the market, so headlines, prices and the ticket share the screen.
+    // Windows too narrow for it fall back to the side panel (TeamShell decides).
+    return PLACEMENTS.includes(stored as NewsPlacement) ? (stored as NewsPlacement) : "beside"
   })
   const setPlacement = useCallback((p: NewsPlacement) => {
     setPlacementState(p)
