@@ -83,3 +83,27 @@ export function describeRules({ startingCashPaise, rules: r }: EventRulesView): 
     },
   ]
 }
+
+export interface QuickStep {
+  readonly title: string
+  readonly text: string
+}
+
+/** The three things a new team needs before its first order; everything else is in the full rules. */
+export function quickStart({ startingCashPaise }: EventRulesView, device: "phone" | "desktop"): QuickStep[] {
+  const pick = device === "phone" ? "Tap" : "Click"
+  return [
+    {
+      title: "How you win",
+      text: `Every team starts with ${formatPaiseWhole(startingCashPaise)}. Your score, shown at the top, is what you'd have if you sold everything now. The highest score when trading closes wins.`,
+    },
+    {
+      title: "When you can trade",
+      text: "Only while a round is running: the clock at the top counts down. Practice rounds don't count and are reset before the real event.",
+    },
+    {
+      title: "Your first order",
+      text: `${pick} a stock, choose Buy and enter a number of shares. The ticket shows what you'll pay before you confirm. Watch the news: it moves prices.`,
+    },
+  ]
+}

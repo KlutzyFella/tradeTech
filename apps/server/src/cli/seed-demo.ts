@@ -1,5 +1,6 @@
 /**
- * Creates a host account (if missing) and a demo room in practice mode.
+ * Creates a host account (if missing) and a demo room in practice mode,
+ * with two practice news stories ready as drafts.
  *
  *   SEED_HOST_EMAIL=you@example.com SEED_HOST_PASSWORD='…' pnpm --filter @tradetech/server seed
  *
@@ -11,6 +12,7 @@ import { createStockSchema } from '@tradetech/contracts'
 import { createHost } from '../auth/hosts.ts'
 import { loadConfig } from '../config.ts'
 import { PrismaClient } from '../generated/prisma/client.ts'
+import { addPracticeStories } from '../host/practice-stories.ts'
 import { createRoom, createStock, importTeams, setRoomStatus } from '../host/room-service.ts'
 
 const ROOM_CODE = 'DEMO'
@@ -59,9 +61,11 @@ async function main(): Promise<void> {
       password: randomBytes(6).toString('base64url'),
     }))
     await importTeams(db, room, { teams })
+    await addPracticeStories(db, room.id)
     await setRoomStatus(db, room, 'practice')
 
-    process.stdout.write(`\nRoom ${ROOM_CODE} is open for practice. Host: ${email}\n\n`)
+    process.stdout.write(`\nRoom ${ROOM_CODE} is open for practice. Host: ${email}\n`)
+    process.stdout.write('Two practice stories are waiting as drafts in the news desk (minutes 3 and 6).\n\n')
     process.stdout.write(teams.map((t) => `  ${t.loginName.padEnd(8)} ${t.password}`).join('\n') + '\n\n')
   } finally {
     await db.$disconnect()

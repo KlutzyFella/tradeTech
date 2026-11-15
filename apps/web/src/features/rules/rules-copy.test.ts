@@ -1,6 +1,6 @@
 import { DEFAULT_ROOM_RULES } from "@tradetech/contracts"
 import { describe, expect, it } from "vitest"
-import { describeRules, plainPercent, plainSeconds } from "./rules-copy"
+import { describeRules, plainPercent, plainSeconds, quickStart } from "./rules-copy"
 
 describe("rules copy for teams", () => {
   it("writes fractions as short percentages", () => {
@@ -32,5 +32,16 @@ describe("rules copy for teams", () => {
     const text = sections.flatMap((s) => s.points).join(" ")
     expect(text).not.toMatch(/one order (every|per)/i)
     expect(text).not.toMatch(/pause for/i)
+  })
+})
+
+describe("quick start for a team's first visit", () => {
+  it("covers winning, when trading is open and a first order, in three short steps", () => {
+    const steps = quickStart({ startingCashPaise: 100_000_000, rules: DEFAULT_ROOM_RULES }, "phone")
+    expect(steps.map((s) => s.title)).toEqual(["How you win", "When you can trade", "Your first order"])
+    expect(steps[0]!.text).toContain("₹10,00,000")
+    expect(steps[2]!.text).toMatch(/^Tap a stock/)
+    expect(quickStart({ startingCashPaise: 100_000_000, rules: DEFAULT_ROOM_RULES }, "desktop")[2]!.text).toMatch(/^Click a stock/)
+    for (const s of steps) expect(s.text.length).toBeLessThan(220)
   })
 })

@@ -58,8 +58,8 @@ Use **exactly** the email of the host account you already created. The seed atta
 
 - [ ] **Host:** Control → **New practice round** (20 minutes) → **Start round**.
   **Phones:** a countdown appears in the header within a second or two.
-- [ ] **Phones:** on first sign-in, each phone opens **How it works**: the scoring rule first, then costs, shorting, limits, close-outs and news, all with this event's numbers. Tap **Got it**. The **?** in the header reopens it.
-  *Talking point:* teams see exactly how they're scored before any trade counts.
+- [ ] **Phones:** on first sign-in, each phone opens a three-step **Quick start**: how you win, when you can trade, and how to place a first order. Tap **Start trading**. The **?** in the header opens the full rules, built from this event's numbers.
+  *Talking point:* teams see how they win before any trade counts, and the score is always in the header.
 - [ ] **Phone A:** Market → tap **SOLAR** → **Buy**, Shares `2000`.
   The slip shows the **estimated average price, "You pay", and the price after the order** before anything is sent.
 - [ ] **Phone A:** tap **Buy 2,000 SOLAR**.
@@ -74,10 +74,12 @@ Use **exactly** the email of the host account you already created. The seed atta
 
 ### Part 3: News (host → phones)
 
-- [ ] **Host:** News → headline "Analysts debate Skyline Airways fuel costs" → **Information only** → **Publish now**.
-  **Phones and laptops:** a red **Breaking** strip under the header shows the actual headline, with an **AIRCO** chip at its live price, because the story names Skyline Airways, and the **News** tab gets an unread count. Prices don't jump.
-- [ ] **Host:** News → headline "Meridian Oil refinery outage cuts supply" → **Moves prices** → OILCO `8`, AIRCO `-6` → **Publish now**.
-  **Teams:** the breaking strip names the story and shows **OILCO** and **AIRCO** chips. OILCO jumps about 8% and AIRCO falls about 6%, and both show **News pause** for about 3 seconds, so nobody can trade on the stale price.
+The demo seed leaves two practice stories as drafts in the News desk: a rumour planned for minute 3 and its confirmation for minute 6.
+
+- [ ] **Host:** News → on "Oil producers said to weigh supply cuts" (information only), click **Schedule for minute 3**. On "Confirmed: producers cut output, crude jumps", click **Schedule for minute 6**. (Or **Publish now** on each, to go faster.)
+- [ ] **At minute 3, phones and laptops:** a red **Breaking** strip shows the rumour. On laptops it also appears in the news column beside the market, and the **News** tab gets an unread count. Prices don't jump: teams decide for themselves whether to buy OILCO or short AIRCO.
+  *Talking point:* information-only news tests judgement. Nothing moves until teams trade.
+- [ ] **At minute 6:** the confirmation breaks with **OILCO** and **AIRCO** chips. OILCO jumps about 6% and AIRCO falls about 5%, and both show "Trading reopens in a few seconds" for about 3 seconds, so nobody can trade on the stale price. Teams that acted on the rumour see it in their **Score** in the header.
 - [ ] **Phone A:** tap **OILCO** in the strip. The order ticket opens on OILCO straight from the story.
 - [ ] **Laptop as a team:** open the **News** tab. Stories show as a large reader with **New** markers, "You hold …" flags and live stock chips, while the order ticket stays docked on the right. Under "Where news shows on your desk", try **Beside market** (a news column next to the prices) and **Tab only**.
   *Talking point:* the percentages are private. Teams see the headline and the market's reaction, never the numbers the host typed.
