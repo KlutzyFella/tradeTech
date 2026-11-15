@@ -134,9 +134,17 @@ export interface OrderView {
 
 export interface OrderPreview {
   readonly ok: boolean
+  /** All-in average including spread and fee. */
   readonly averagePrice?: number
   readonly cashDeltaPaise?: number
   readonly midAfter?: number
+  /** Mid before the order: the price the team sees on the board. */
+  readonly marketPrice?: number
+  /** Average along the curve before costs: market price plus the order's own impact. */
+  readonly fillPrice?: number
+  /** Display breakdown; cashDeltaPaise is authoritative (rounded once in the dealer's favour). */
+  readonly spreadCostPaise?: number
+  readonly feeCostPaise?: number
   readonly reason?: string
   readonly message?: string
   readonly maxQuantity?: number

@@ -8,10 +8,14 @@ function niceStep(rough: number): number {
   return factor * magnitude
 }
 
-/** Up to about `count` clean, evenly spaced ticks inside [min, max]. */
-export function niceTicks(min: number, max: number, count: number): number[] {
+/**
+ * Up to about `count` clean, evenly spaced ticks inside [min, max], never
+ * closer than `minStep` (prices are labelled to the paisa, so 0.01 keeps
+ * every label distinct).
+ */
+export function niceTicks(min: number, max: number, count: number, minStep = 0): number[] {
   if (!(max > min)) return [min]
-  const step = niceStep((max - min) / count)
+  const step = Math.max(niceStep((max - min) / count), minStep)
   const decimals = Math.max(0, -Math.floor(Math.log10(step)))
   const ticks: number[] = []
   for (let k = Math.ceil(min / step - 1e-9); k * step <= max + 1e-9; k++) {

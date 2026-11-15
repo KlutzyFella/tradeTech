@@ -10,6 +10,8 @@ import { quotesFor, stockTradingState } from './market-state.ts'
 import { toOrderView } from './views.ts'
 
 const TRADING_STATUSES = new Set(['practice', 'live'])
+/** Estimates are read-only, so they also work while paused and between rounds (prices are frozen then). */
+const PREVIEW_STATUSES = new Set(['practice', 'live', 'paused'])
 
 export interface TeamRef {
   readonly teamId: bigint
@@ -28,19 +30,27 @@ interface TradingSnapshot {
   readonly decision: OrderDecision
 }
 
-/** Loads the team's book and evaluates the ticket. Must run inside the room lock to be authoritative. */
-async function evaluate(tx: Tx, ref: TeamRef, ticket: OrderTicketInput): Promise<TradingSnapshot> {
+/**
+ * Loads the team's book and evaluates the ticket. Must run inside the room
+ * lock to be authoritative. A preview skips the "round running" and news
+ * pause gates: it only estimates, and the client shows why trading is shut.
+ */
+async function evaluate(tx: Tx, ref: TeamRef, ticket: OrderTicketInput, mode: 'place' | 'preview' = 'place'): Promise<TradingSnapshot> {
   const room = await tx.room.findUniqueOrThrow({ where: { id: ref.roomId } })
-  if (!TRADING_STATUSES.has(room.status)) throw new AppError(409, 'market_closed', 'Trading is not open right now.')
-  const running = await tx.round.findFirst({ where: { roomId: ref.roomId, status: 'running' }, select: { id: true } })
-  if (!running) throw new AppError(409, 'market_closed', 'Trading opens when the host starts the round.')
+  if (!(mode === 'place' ? TRADING_STATUSES : PREVIEW_STATUSES).has(room.status)) {
+    throw new AppError(409, 'market_closed', 'Trading is not open right now.')
+  }
+  if (mode === 'place') {
+    const running = await tx.round.findFirst({ where: { roomId: ref.roomId, status: 'running' }, select: { id: true } })
+    if (!running) throw new AppError(409, 'market_closed', 'Trading opens when the host starts the round.')
+  }
   const team = await tx.team.findUniqueOrThrow({ where: { id: ref.teamId } })
   if (team.status !== 'active') throw new AppError(403, 'team_inactive', `This team is ${team.status}.`)
 
   const stocks = await tx.stock.findMany({ where: { roomId: ref.roomId } })
   const stock = stocks.find((s) => s.id.toString() === ticket.stockId)
   if (!stock) throw notFound('Stock')
-  if (stock.reopensAt && stock.reopensAt.getTime() > Date.now()) {
+  if (mode === 'place' && stock.reopensAt && stock.reopensAt.getTime() > Date.now()) {
     throw new AppError(409, 'news_pause', `${stock.ticker} reopens in a moment after the news — try again shortly.`)
   }
   const positions = await tx.position.findMany({ where: { teamId: ref.teamId } })
@@ -121,7 +131,7 @@ export async function placeOrder(db: PrismaClient, ref: TeamRef, input: PlaceOrd
 
 /** Estimates an order against current state without persisting anything. */
 export async function previewOrder(db: PrismaClient, ref: TeamRef, ticket: OrderTicketInput): Promise<OrderPreview> {
-  const { decision } = await db.$transaction((tx) => evaluate(tx, ref, ticket))
+  const { decision } = await db.$transaction((tx) => evaluate(tx, ref, ticket, 'preview'))
   if (!decision.ok) {
     return {
       ok: false,
@@ -135,5 +145,9 @@ export async function previewOrder(db: PrismaClient, ref: TeamRef, ticket: Order
     averagePrice: decision.averagePrice,
     cashDeltaPaise: Number(decision.cashDeltaPaise),
     midAfter: decision.midAfter,
+    marketPrice: decision.midBefore,
+    fillPrice: decision.fillPrice,
+    spreadCostPaise: Math.round(decision.spreadCost * 100),
+    feeCostPaise: Math.round(decision.feeCost * 100),
   }
 }

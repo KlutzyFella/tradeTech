@@ -54,6 +54,10 @@ export interface OrderFill {
   readonly fillPrice: number
   /** All-in average price |B(x)|/|x| including spread and fee. */
   readonly averagePrice: number
+  /** Spread paid, in rupees: halfSpread × |K(x)|. For display; cashDeltaPaise is authoritative. */
+  readonly spreadCost: number
+  /** Fee paid, in rupees: fee × |K(x)|. For display; cashDeltaPaise is authoritative. */
+  readonly feeCost: number
   /** Team's signed cash change, rounded once in the dealer's favour. */
   readonly cashDeltaPaise: bigint
   readonly midBefore: number
@@ -67,7 +71,7 @@ export interface OrderRejection {
   readonly ok: false
   readonly reason: RejectReason
   readonly message: string
-  /** Largest quantity that would pass the violated price limit, when applicable. */
+  /** Largest quantity that would pass the violated limit (price move, band, holdings, borrow), when known. */
   readonly maxQuantity?: number
 }
 
@@ -83,16 +87,20 @@ function checkIntent(ticket: OrderTicket, held: number, stock: StockTradingState
       return held < 0 ? reject('wrong_intent', 'You are short this stock — use Cover to buy it back.') : null
     case 'sell':
       if (held <= 0) return reject('wrong_intent', 'You hold no shares to sell — use Short to open a short.')
-      return n > held ? reject('crosses_zero', `You hold ${held} shares; sell at most ${held}, then short separately.`) : null
+      return n > held ? reject('crosses_zero', `You hold ${held} shares; sell at most ${held}, then short separately.`, held) : null
     case 'short':
       if (held > 0) return reject('wrong_intent', 'You hold this stock — sell it before opening a short.')
       if (!stock.shortable) return reject('not_shortable', 'This stock cannot be shorted.')
       return n > stock.borrowAvailable
-        ? reject('insufficient_borrow', `Only ${stock.borrowAvailable} shares are available to borrow.`)
+        ? reject(
+            'insufficient_borrow',
+            `Only ${stock.borrowAvailable} shares are available to borrow.`,
+            stock.borrowAvailable > 0 ? stock.borrowAvailable : undefined,
+          )
         : null
     case 'cover':
       if (held >= 0) return reject('wrong_intent', 'You have no short position to cover.')
-      return n > -held ? reject('crosses_zero', `You are short ${-held}; cover at most ${-held}, then buy separately.`) : null
+      return n > -held ? reject('crosses_zero', `You are short ${-held}; cover at most ${-held}, then buy separately.`, -held) : null
   }
 }
 
@@ -193,6 +201,8 @@ export function evaluateOrder(ctx: OrderContext, ticket: OrderTicket): OrderDeci
     signedQuantity: x,
     fillPrice: notional / x,
     averagePrice,
+    spreadCost: quote.halfSpread * Math.abs(notional),
+    feeCost: quote.fee * Math.abs(notional),
     cashDeltaPaise,
     midBefore: quote.mid,
     midAfter: newMid,

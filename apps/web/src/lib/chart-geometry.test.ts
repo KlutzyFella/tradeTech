@@ -29,3 +29,12 @@ describe("chart domain", () => {
     expect(hi).toBeGreaterThan(100)
   })
 })
+
+describe("ticks on a nearly flat price", () => {
+  it("never places ticks closer than the minimum step, so labels stay distinct", () => {
+    // A 100-share buy against a deep stock: ₹100.000 → ₹100.002. Without a floor the ticks are 0.001 apart.
+    expect(niceTicks(99.9998, 100.0022, 3, 0.01)).toEqual([100])
+    const labels = niceTicks(99.97, 100.03, 3, 0.01).map((t) => t.toFixed(2))
+    expect(new Set(labels).size).toBe(labels.length)
+  })
+})

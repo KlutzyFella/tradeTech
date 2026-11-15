@@ -207,3 +207,34 @@ describe('opening risk limits', () => {
     expect(decision.ok).toBe(true)
   })
 })
+
+describe('one-click fixes and cost breakdown for the order ticket', () => {
+  it('offers the shares held when a sell or cover would cross zero', () => {
+    const sell = evaluateOrder(context({ positions: new Map([['THIN', 100]]) }), { stockId: 'THIN', intent: 'sell', quantity: 500 })
+    expect(sell).toMatchObject({ ok: false, reason: 'crosses_zero', maxQuantity: 100 })
+    const cover = evaluateOrder(context({ positions: new Map([['THIN', -40]]) }), { stockId: 'THIN', intent: 'cover', quantity: 50 })
+    expect(cover).toMatchObject({ ok: false, reason: 'crosses_zero', maxQuantity: 40 })
+  })
+
+  it('offers the shares left to borrow when a short is too big for the pool', () => {
+    const short = evaluateOrder(context({ stock: tradable('THIN', { borrowAvailable: 300 }) }), { stockId: 'THIN', intent: 'short', quantity: 500 })
+    expect(short).toMatchObject({ ok: false, reason: 'insufficient_borrow', maxQuantity: 300 })
+    const none = evaluateOrder(context({ stock: tradable('THIN', { borrowAvailable: 0 }) }), { stockId: 'THIN', intent: 'short', quantity: 5 })
+    expect(none).not.toHaveProperty('maxQuantity')
+  })
+
+  it('splits a fill into price impact, spread and fee that reconcile with the cash', () => {
+    const buy = evaluateOrder(context(), { stockId: 'THIN', intent: 'buy', quantity: 1000 })
+    if (!buy.ok) throw new Error(buy.message)
+    const notional = buy.fillPrice * 1000
+    expect(buy.spreadCost).toBeCloseTo(0.001 * notional, 9)
+    expect(buy.feeCost).toBeCloseTo(0.0005 * notional, 9)
+    // Paid = curve notional + spread + fee, rounded once against the team.
+    expect(-Number(buy.cashDeltaPaise) / 100).toBeCloseTo(notional + buy.spreadCost + buy.feeCost, 1)
+
+    const sell = evaluateOrder(context({ positions: new Map([['THIN', 1000]]) }), { stockId: 'THIN', intent: 'sell', quantity: 1000 })
+    if (!sell.ok) throw new Error(sell.message)
+    const proceeds = sell.fillPrice * 1000
+    expect(Number(sell.cashDeltaPaise) / 100).toBeCloseTo(proceeds - sell.spreadCost - sell.feeCost, 1)
+  })
+})

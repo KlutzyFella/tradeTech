@@ -5,14 +5,15 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api, NetworkError } from "@/lib/api"
+import { api, ApiError, NetworkError } from "@/lib/api"
 import { PriceChart } from "@/components/charts/PriceChart"
 import { PriceChange } from "@/components/price-change"
 import { useNewsContext } from "@/features/news/news-context"
 import { formatPaise, formatPrice, formatShares } from "@/lib/format"
 import { queryKeys } from "@/lib/live"
-import { usePortfolio, useStockHistory } from "@/lib/queries"
+import { useMarket, usePortfolio, useStockHistory } from "@/lib/queries"
 import { cn } from "@/lib/utils"
+import { tradingGate, type TradingGate } from "./trading-gate"
 
 const INTENTS: readonly { intent: OrderIntent; label: string; past: string; side: "gain" | "loss" }[] = [
   { intent: "buy", label: "Buy", past: "Bought", side: "gain" },
@@ -48,6 +49,7 @@ const QUICK_SIZES = [100, 500, 1000, 5000] as const
 export function OrderSlip({ stock, onDone }: OrderSlipProps) {
   const queryClient = useQueryClient()
   const portfolio = usePortfolio()
+  const market = useMarket()
   const held = portfolio.data?.positions.find((p) => p.stockId === stock.id)?.quantity ?? 0
   const allowed = allowedIntents(held, stock.shortable)
 
@@ -58,7 +60,7 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
   const limitPrice = limitText ? Number.parseFloat(limitText) : undefined
   const ticket = useMemo(
     () => ({ stockId: stock.id, intent, quantity, ...(limitPrice && limitPrice > 0 ? { limitPrice } : {}) }),
-    [stock.id, intent, quantity, limitPrice],
+    [stock.id, intent, quantity, limitPrice]
   )
   const validQuantity = Number.isSafeInteger(quantity) && quantity > 0
 
@@ -111,8 +113,17 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
   }, [stock.pausedUntil])
   const newsPaused = stock.pausedUntil !== null && expiredPause !== stock.pausedUntil
 
+  const gate = tradingGate({
+    roomStatus: market.data?.roomStatus,
+    round: market.data ? market.data.round : undefined,
+    halted: stock.halted,
+    newsPaused,
+    ticker: stock.ticker,
+  })
   const chosen = INTENTS.find((i) => i.intent === intent)!
-  const blocked = !validQuantity || !allowed.has(intent) || stock.halted || newsPaused || place.isPending || previewBlocks
+  // Selling or covering everything: the one size a team often wants and can't guess.
+  const closeAll = (intent === "sell" && held > 0) || (intent === "cover" && held < 0) ? Math.abs(held) : null
+  const blocked = !gate.open || !validQuantity || !allowed.has(intent) || place.isPending || previewBlocks
   return (
     <div className="flex flex-col">
       <div aria-hidden className={cn("h-1 rounded-t-lg", chosen.side === "gain" ? "bg-gain" : "bg-loss")} />
@@ -133,16 +144,6 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
         <StockChart stock={stock} />
 
         {stock.profile && <p className="text-sm leading-relaxed text-muted-foreground">{stock.profile}</p>}
-        {stock.halted && (
-          <p role="status" className="rounded-md bg-loss-tint px-3 py-2 text-sm font-medium text-loss">
-            Trading in {stock.ticker} is halted by the host.
-          </p>
-        )}
-        {!stock.halted && newsPaused && (
-          <p role="status" className="rounded-md bg-warning/15 px-3 py-2 text-sm font-medium text-warning">
-            Trading reopens in a few seconds while prices update for the news.
-          </p>
-        )}
 
         <dl className="figures grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-md bg-muted px-3 py-2">
@@ -169,10 +170,10 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
                 disabled={!allowed.has(option.intent) || stock.halted}
                 onClick={() => setIntent(option.intent)}
                 className={cn(
-                  "h-10 rounded-md font-heading text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-35",
+                  "h-10 rounded-md font-heading text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-35",
                   !active && "text-muted-foreground hover:text-foreground",
                   active && option.side === "gain" && "bg-gain text-background",
-                  active && option.side === "loss" && "bg-loss text-background",
+                  active && option.side === "loss" && "bg-loss text-background"
                 )}
               >
                 {option.label}
@@ -208,14 +209,26 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
             </div>
           </div>
           <div role="group" aria-label="Quick sizes" className="flex flex-wrap gap-1.5">
+            {closeAll !== null && (
+              <button
+                type="button"
+                onClick={() => setQuantityText(String(closeAll))}
+                className={cn(
+                  "figures h-8 rounded-md border border-border px-2.5 text-xs font-semibold transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+                  quantity === closeAll && "border-foreground bg-muted"
+                )}
+              >
+                {intent === "sell" ? "Sell" : "Cover"} all {formatShares(closeAll)}
+              </button>
+            )}
             {QUICK_SIZES.map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setQuantityText(String(n))}
                 className={cn(
-                  "figures h-8 min-w-14 rounded-md border border-border px-2.5 text-xs font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-                  quantity === n && "border-foreground bg-muted",
+                  "figures h-8 min-w-14 rounded-md border border-border px-2.5 text-xs font-medium transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+                  quantity === n && "border-foreground bg-muted"
                 )}
               >
                 {formatShares(n)}
@@ -224,11 +237,25 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
           </div>
         </div>
 
-        <Estimate preview={validQuantity ? preview.data : undefined} pending={validQuantity && preview.isFetching} onUseMax={(n) => setQuantityText(String(n))} />
+        <Estimate
+          preview={validQuantity ? preview.data : undefined}
+          error={validQuantity && preview.error instanceof ApiError ? preview.error.message : null}
+          pending={validQuantity && preview.isFetching}
+          marketOpen={gate.open}
+          onUseMax={(n) => setQuantityText(String(n))}
+        />
 
         <div aria-live="polite" className="contents">
-          {rejected && <p role="alert" className="text-sm text-destructive">Not filled: {rejected.rejectMessage}</p>}
-          {place.error && !outcomeUnknown && <p role="alert" className="text-sm text-destructive">{place.error.message}</p>}
+          {rejected && (
+            <p role="alert" className="text-sm text-destructive">
+              Not filled: {rejected.rejectMessage}
+            </p>
+          )}
+          {place.error && !outcomeUnknown && (
+            <p role="alert" className="text-sm text-destructive">
+              {place.error.message}
+            </p>
+          )}
           {outcomeUnknown && (
             <p role="alert" className="text-sm text-destructive">
               We couldn’t confirm this order. Tap {chosen.label} again — it will not be placed twice.
@@ -236,9 +263,19 @@ export function OrderSlip({ stock, onDone }: OrderSlipProps) {
           )}
         </div>
 
-        <Button size="lg" variant={chosen.side === "gain" ? "buy" : "sell"} className="h-12 font-heading text-base" disabled={blocked} onClick={() => place.mutate()}>
-          {place.isPending ? "Sending order…" : `${chosen.label} ${validQuantity ? formatShares(quantity) : ""} ${stock.ticker}`}
-        </Button>
+        <div className="flex flex-col gap-2">
+          {!gate.open && <GateNotice gate={gate} />}
+          <Button
+            size="lg"
+            variant={chosen.side === "gain" ? "buy" : "sell"}
+            className="h-12 font-heading text-base"
+            disabled={blocked}
+            aria-describedby={gate.open ? undefined : "trading-gate"}
+            onClick={() => place.mutate()}
+          >
+            {place.isPending ? "Sending order…" : `${chosen.label} ${validQuantity ? formatShares(quantity) : ""} ${stock.ticker}`}
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -250,7 +287,7 @@ function StockChart({ stock }: { stock: StockView }) {
   const { items, mentionsOf } = useNewsContext()
   const markers = useMemo(
     () => items.map((n) => ({ t: n.publishedAt, label: n.headline, emphasis: mentionsOf(n).some((s) => s.id === stock.id) })),
-    [items, mentionsOf, stock.id],
+    [items, mentionsOf, stock.id]
   )
   // The live quote may be newer than the last sample: end the line at the price shown above it.
   const points = useMemo(() => {
@@ -262,11 +299,37 @@ function StockChart({ stock }: { stock: StockView }) {
   return <PriceChart points={points} markers={markers} title={`${stock.ticker} price this round`} height={150} />
 }
 
-function Estimate({ preview, pending, onUseMax }: { preview: OrderPreview | undefined; pending: boolean; onUseMax: (n: number) => void }) {
+function GateNotice({ gate }: { gate: Extract<TradingGate, { open: false }> }) {
+  return (
+    <p
+      id="trading-gate"
+      role="status"
+      className={cn(
+        "rounded-md px-3 py-2 text-sm font-medium",
+        gate.tone === "loss" && "bg-loss-tint text-loss",
+        gate.tone === "warning" && "bg-warning/15 text-warning",
+        gate.tone === "info" && "bg-muted text-foreground"
+      )}
+    >
+      {gate.message}
+    </p>
+  )
+}
+
+interface EstimateProps {
+  preview: OrderPreview | undefined
+  /** The server's reason no estimate is possible (for example, before the event opens). */
+  error: string | null
+  pending: boolean
+  marketOpen: boolean
+  onUseMax: (n: number) => void
+}
+
+function Estimate({ preview, error, pending, marketOpen, onUseMax }: EstimateProps) {
   if (!preview) {
     return (
       <p className="rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
-        {pending ? "Estimating…" : "Enter a quantity to see the estimated cost before you trade."}
+        {pending ? "Estimating…" : (error ?? "Enter a quantity to see the estimated cost before you trade.")}
       </p>
     )
   }
@@ -283,14 +346,33 @@ function Estimate({ preview, pending, onUseMax }: { preview: OrderPreview | unde
     )
   }
   const paying = (preview.cashDeltaPaise ?? 0) < 0
+  const costsPaise = (preview.spreadCostPaise ?? 0) + (preview.feeCostPaise ?? 0)
   return (
-    <dl className="figures grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 rounded-md border border-border px-3 py-3 text-sm">
-      <dt className="text-muted-foreground">Estimated average</dt>
-      <dd className="text-right font-medium">{formatPrice(preview.averagePrice ?? 0)}</dd>
-      <dt className="text-muted-foreground">{paying ? "You pay" : "You receive"}</dt>
-      <dd className="text-right font-heading text-base font-semibold">{formatPaise(Math.abs(preview.cashDeltaPaise ?? 0))}</dd>
-      <dt className="text-muted-foreground">Price after</dt>
-      <dd className="text-right">{formatPrice(preview.midAfter ?? 0)}</dd>
-    </dl>
+    <div className="flex flex-col gap-1.5">
+      <dl className="figures grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 rounded-md border border-border px-3 py-3 text-sm">
+        <dt className="text-muted-foreground">Fill price</dt>
+        <dd className="text-right font-medium">
+          {formatPrice(preview.fillPrice ?? preview.averagePrice ?? 0)}
+          {preview.marketPrice !== undefined && (
+            <span className="block text-xs font-normal text-muted-foreground">market {formatPrice(preview.marketPrice)}</span>
+          )}
+        </dd>
+        <dt className="text-muted-foreground">Spread and fee</dt>
+        <dd className="text-right">
+          {formatPaise(costsPaise)}
+          <span className="block text-xs text-muted-foreground">
+            {formatPaise(preview.spreadCostPaise ?? 0)} spread + {formatPaise(preview.feeCostPaise ?? 0)} fee
+          </span>
+        </dd>
+        <dt className="font-medium">{paying ? "You pay" : "You receive"}</dt>
+        <dd className="text-right font-heading text-base font-semibold">
+          {formatPaise(Math.abs(preview.cashDeltaPaise ?? 0))}
+          <span className="block font-sans text-xs font-normal text-muted-foreground">{formatPrice(preview.averagePrice ?? 0)} a share, all in</span>
+        </dd>
+        <dt className="text-muted-foreground">Price after</dt>
+        <dd className="text-right">{formatPrice(preview.midAfter ?? 0)}</dd>
+      </dl>
+      {!marketOpen && <p className="text-xs text-muted-foreground">Estimated at current prices. It may change by the time trading opens.</p>}
+    </div>
   )
 }

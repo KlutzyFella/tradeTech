@@ -51,7 +51,7 @@ export function PriceChart({ points, markers = [], title, height = 160 }: PriceC
     const line = xy.map(([px, py], i) => `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`).join("")
     const bottom = PAD.top + innerH
     const area = `${line}L${xy.at(-1)![0].toFixed(1)},${bottom}L${xy[0]![0].toFixed(1)},${bottom}Z`
-    const ticks = niceTicks(lo, hi, 3).map((v) => ({ v, y: y(v) }))
+    const ticks = niceTicks(lo, hi, 3, 0.01).map((v) => ({ v, y: y(v) }))
     const marks = markers
       .map((m) => ({ ...m, x: x(new Date(m.t).getTime()) }))
       .filter((m) => m.x >= PAD.left - 0.5 && m.x <= PAD.left + innerW + 0.5)
