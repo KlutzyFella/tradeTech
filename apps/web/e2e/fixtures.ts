@@ -17,8 +17,10 @@ export async function rulesAlreadyRead(context: BrowserContext): Promise<void> {
  * spec creates itself need rulesAlreadyRead().
  */
 export const test = base.extend({
-  context: async ({ context }, use) => {
+  // Playwright's fixture callback is usually called `use`; naming it `provide` keeps
+  // the React hooks lint rule from mistaking it for React's use() hook.
+  context: async ({ context }, provide) => {
     await rulesAlreadyRead(context)
-    await use(context)
+    await provide(context)
   },
 })
